@@ -184,3 +184,50 @@ plt.gca().set_aspect('equal', adjustable='box')
 plt.grid(False)
 plt.show()  # Show T1 scatter plot separately
 
+# Calcular la desviación estándar de difference_T2 y difference_T1
+std_dev_T2 = df_filtered_T2['difference_T2'].std()
+std_dev_T1 = df_filtered_T1['difference_T1'].std()
+
+# Mostrar los resultados
+print(f'\nDesviación estándar de difference_T2: {std_dev_T2:.4f}')
+print(f'Desviación estándar de difference_T1: {std_dev_T1:.4f}')
+
+#create a copy 
+df_filtered_T2 = df[df['difference_T2'].notna()].copy()
+df_filtered_T1 = df[df['difference_T1'].notna()].copy()
+
+# Convertir a milisegundos
+df_filtered_T2['difference_T2_ms'] = df_filtered_T2['difference_T2'] * 1000
+df_filtered_T1['difference_T1_ms'] = df_filtered_T1['difference_T1'] * 1000
+
+# Determinar los límites comunes del eje X
+min_value = min(df_filtered_T2['difference_T2_ms'].min(), df_filtered_T1['difference_T1_ms'].min())
+max_value = max(df_filtered_T2['difference_T2_ms'].max(), df_filtered_T1['difference_T1_ms'].max())
+
+# Gráfico de densidad para difference_T2 en ms
+plt.figure(figsize=(4, 2.5))
+sns.kdeplot(df_filtered_T2['difference_T2_ms'], color='green', linewidth=2, label='T2')
+plt.axvline(df_filtered_T2['difference_T2_ms'].mean(), color='black', linestyle='dashed', label=f'Media: {df_filtered_T2["difference_T2_ms"].mean():.2f} ms')
+plt.axvline(df_filtered_T2['difference_T2_ms'].mean() + df_filtered_T2['difference_T2_ms'].std(), color='grey', linestyle='dashed', label=f'+1 Desv. Est.')
+plt.axvline(df_filtered_T2['difference_T2_ms'].mean() - df_filtered_T2['difference_T2_ms'].std(), color='grey', linestyle='dashed')
+plt.title('Distribución de tiempos - T2')
+plt.xlabel('Tiempo (ms)')
+plt.ylabel('Densidad')
+plt.xlim(min_value, max_value)  # MISMO RANGO PARA EL EJE X
+plt.legend()
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.show()
+
+# Gráfico de densidad para difference_T1 en ms
+plt.figure(figsize=(4, 2.5))
+sns.kdeplot(df_filtered_T1['difference_T1_ms'], color='green', linewidth=2, label='T1')
+plt.axvline(df_filtered_T1['difference_T1_ms'].mean(), color='black', linestyle='dashed', label=f'Media: {df_filtered_T1["difference_T1_ms"].mean():.2f} ms')
+plt.axvline(df_filtered_T1['difference_T1_ms'].mean() + df_filtered_T1['difference_T1_ms'].std(), color='grey', linestyle='dashed', label=f'+1 Desv. Est.')
+plt.axvline(df_filtered_T1['difference_T1_ms'].mean() - df_filtered_T1['difference_T1_ms'].std(), color='grey', linestyle='dashed')
+plt.title('Distribución de tiempos - T1')
+plt.xlabel('Tiempo (ms)')
+plt.ylabel('Densidad')
+plt.xlim(min_value, max_value)  # MISMO RANGO PARA EL EJE X
+plt.legend()
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.show()
