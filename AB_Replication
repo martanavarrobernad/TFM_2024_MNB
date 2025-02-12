@@ -1,0 +1,186 @@
+#import libraries 
+import os
+import glob
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+#iport data from drive
+from google.colab import drive
+drive.mount('/content/gdrive')
+cd "/content/gdrive/MyDrive/Colab Notebooks/PILOTS"
+ls
+
+mypath = '/content/gdrive/MyDrive/Colab Notebooks/PILOTS';
+# Use glob to obtain all CVS archives
+csv_files = glob.glob(os.path.join(mypath, "*.csv"))
+# Show archives found
+print(f"Archivos CSV encontrados: {csv_files}")
+# Iterate
+for file in csv_files:
+    # Charge CSV in a DataFrame
+    df = pd.read_csv(file)
+
+#CHARGE DUAL CONDTION
+mypath = '/content/gdrive/MyDrive/Colab Notebooks/PILOTS';
+filename = 'dual_condition_marta.csv';
+df = pd.read_csv(os.path.join(mypath,filename),nrows=6965) 
+#I don't know why, when I finish doing the single condition, the program lets me do just 1 block of the dual condition instead of the 6, and then it crashes.
+#Thats's why I charged one file for each condition, and filtered until 'nrows', because the next rows would be part of the other condition
+df.head()
+
+#CHARGE SINGLE CONDITION
+filename2 = 'single_condition_marta.csv'
+df2 = pd.read_csv(os.path.join(mypath, filename2),nrows=6949) 
+df2.head()
+############################################################################################################
+# Filter rows where key_resp_T2.corr has 0 or 1 values
+df_filtered = df[df['key_resp_T2.corr'].isin([0, 1])]
+df_filtered2 = df2[df2['key_resp_T2.corr'].isin([0, 1])]
+
+# Define lags of interest
+lags = [1, 3, 7]
+df_filtered = df_filtered[df_filtered['lagT1'].isin(lags)]
+df_filtered2 = df_filtered2[df_filtered2['lagT1'].isin(lags)]
+
+# Total of trials and accuracy for T2 dual condition
+total_trials_T2 = df_filtered['lagT1'].value_counts().sort_index()
+correct_trials_T2 = df_filtered[df_filtered['key_resp_T2.corr'] == 1]['lagT1'].value_counts().sort_index()
+accuracy_percentage_T2 = (correct_trials_T2 / total_trials_T2 * 100).fillna(0)
+
+# Total of trials and accuracy for T1 dual condition
+total_trials_T1 = df_filtered['lagT1'].value_counts().sort_index()
+correct_trials_T1 = df_filtered[df_filtered['key_resp_T1.corr'] == 1]['lagT1'].value_counts().sort_index()
+accuracy_percentage_T1 = (correct_trials_T1 / total_trials_T1 * 100).fillna(0)
+
+# Total of trials and accuracy for T2 single condition
+total_trials_T2_single = df_filtered2['lagT1'].value_counts().sort_index()
+correct_trials_T2_single = df_filtered2[df_filtered2['key_resp_T2.corr'] == 1]['lagT1'].value_counts().sort_index()
+accuracy_percentage_T2_single = (correct_trials_T2_single / total_trials_T2_single * 100).fillna(0)
+
+# Print results for T2
+print("\nAccuracy percentage for lag (T2):")
+for lag in lags:
+    total_T2 = total_trials_T2.get(lag, 0)
+    correct_T2 = correct_trials_T2.get(lag, 0)
+    print(f'Lag {lag}: {correct_T2} correct out of {total_T2} trials -> {accuracy_percentage_T2.get(lag, 0):.2f}%')
+
+# Print results for T1
+print("\nAccuracy percentage for lag (T1):")
+for lag in lags:
+    total_T1 = total_trials_T1.get(lag, 0)
+    correct_T1 = correct_trials_T1.get(lag, 0)
+    print(f'Lag {lag}: {correct_T1} correct out of {total_T1} trials -> {accuracy_percentage_T1.get(lag, 0):.2f}%')
+
+# Print results for T2 single
+print("\nAccuracy percentage for lag (T2) single condition:")
+for lag in lags:
+    total_T2_single = total_trials_T2_single.get(lag, 0)
+    correct_T2_single = correct_trials_T2_single.get(lag, 0)
+    print(f'Lag {lag}: {correct_T2_single} correct out of {total_T2_single} trials -> {accuracy_percentage_T2_single.get(lag, 0):.2f}%')
+
+# Plot graphic for T2
+plt.figure(figsize=(10, 5))
+plt.plot(accuracy_percentage_T2.index, accuracy_percentage_T2.values, marker='o', color='red', label='T2 Dual-Target')
+plt.plot(accuracy_percentage_T2_single.index, accuracy_percentage_T2_single.values, marker='s', color='blue', label='T2 Single-Target')
+plt.title('T2 Accuracy (% Correct)')
+plt.xlabel('Lag')
+plt.ylabel('Accuracy (% Correct)')
+plt.xticks(accuracy_percentage_T2.index, [f'Lag {int(lag)}' for lag in accuracy_percentage_T2.index])
+plt.ylim(0, 100)
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# Plot graphic for T1
+plt.figure(figsize=(10, 5))
+plt.plot(accuracy_percentage_T1.index, accuracy_percentage_T1.values, marker='o', color='green', label='T1 Dual-Target')
+plt.title('T1 Accuracy (% Correct)')
+plt.xlabel('Lag')
+plt.ylabel('Accuracy (% Correct)')
+plt.xticks(accuracy_percentage_T1.index, [f'Lag {int(lag)}' for lag in accuracy_percentage_T1.index])
+plt.ylim(0, 100)
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# Columns we want in numeric form
+columns_to_convert = ['text_distr_T2.started', 'text_distr_T2.stopped', 'text_distr_T1.started', 'text_distr_T1.stopped']
+
+# Convert to numeric, 'coerce' so any not numeric value becomes NaN
+for col in columns_to_convert:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+# 'text_distr_T2.stopped' - 'text_distr_T2.started'
+df['difference_T2'] = df['text_distr_T2.stopped'] - df['text_distr_T2.started']
+
+# 'text_distr_T1.stopped' - 'text_distr_T1.started'
+df['difference_T1'] = df['text_distr_T1.stopped'] - df['text_distr_T1.started']
+
+# Only rows where 'difference_T2' not NaN
+df_filtered_T2 = df[df['difference_T2'].notna()]
+
+# Show 'difference_T2'
+print("Numeric values en difference_T2:")
+print(df_filtered_T2[['difference_T2']])
+
+# How many NaN in 'difference_T2' and how many not NaN
+nan_count_T2 = df['difference_T2'].isna().sum()
+notnan_count_T2 = df['difference_T2'].notna().sum()
+
+print(f'\nAmount of NaN in difference_T2: {nan_count_T2}')
+print(f'Amount of numeric values in difference_T2: {notnan_count_T2}')
+
+# Only rows where 'difference_T1' not NaN
+df_filtered_T1 = df[df['difference_T1'].notna()]
+
+# Show 'difference_T1'
+print("\nValores numéricos en difference_T1:")
+print(df_filtered_T1[['difference_T1']])
+
+# How many NaN in 'difference_T1' and how many not NaN
+nan_count_T1 = df['difference_T1'].isna().sum()
+notnan_count_T1 = df['difference_T1'].notna().sum()
+
+print(f'\nCantidad de NaN en difference_T1: {nan_count_T1}')
+print(f'Cantidad de valores numéricos en difference_T1: {notnan_count_T1}')
+
+# Find min and max of both 'difference_T2' and 'difference_T1'
+min_value = min(df_filtered_T2['difference_T2'].min(), df_filtered_T1['difference_T1'].min())
+max_value = max(df_filtered_T2['difference_T2'].max(), df_filtered_T1['difference_T1'].max())
+
+# Scatter plot for 'difference_T2'
+plt.figure(figsize=(5, 3))
+plt.scatter(df_filtered_T2['difference_T2'], df_filtered_T2['difference_T2'], color='black', alpha=0.6)
+plt.title('Time of appaerance T2', fontsize=14)
+plt.xlabel('Difference T2 (Time)', fontsize=12)
+plt.ylabel('Difference T2 (Time)', fontsize=12)
+
+# Adjust limits so both axes have the same range
+plt.xlim(min_value, max_value)
+plt.ylim(min_value, max_value)
+
+# Ensuring that the axis ratios are equal
+plt.gca().set_aspect('equal', adjustable='box')
+
+plt.grid(False)
+plt.show()  # Show T2 scatter plot separately
+
+# Scatter plot for 'difference_T1'
+plt.figure(figsize=(5, 3))
+plt.scatter(df_filtered_T1['difference_T1'], df_filtered_T1['difference_T1'], color='green', alpha=0.6)
+plt.title('Time of appaerance T1', fontsize=14)
+plt.xlabel('Difference T1 (Time)', fontsize=12)
+plt.ylabel('Difference T1 (Time)', fontsize=12)
+
+# Adjust limits so both axes have the same range
+plt.xlim(min_value, max_value)
+plt.ylim(min_value, max_value)
+
+# Ensuring that the axis ratios are equal
+plt.gca().set_aspect('equal', adjustable='box')
+
+plt.grid(False)
+plt.show()  # Show T1 scatter plot separately
+
