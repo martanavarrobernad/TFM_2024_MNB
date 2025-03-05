@@ -11,76 +11,49 @@ drive.mount('/content/gdrive')
 cd "/content/gdrive/MyDrive/Colab Notebooks/PILOTS"
 ls
 
-# Definir ruta
+# Define route
 mypath = '/content/gdrive/MyDrive/Colab Notebooks/PILOTS'
-# Usar glob para obtener todos los archivos CSV
+# Use glob to keep CSV
 csv_files = glob.glob(os.path.join(mypath, "*.csv"))
-print(f"Archivos CSV encontrados: {csv_files}")
+print(f" CSV files found: {csv_files}")
 
-# Establecer colores para las condiciones
-colors = {
-    "single_condition": 'blue',
-    "dual_condition": 'green'
-}
-
- # Definir ruta
-mypath = '/content/gdrive/MyDrive/Colab Notebooks/PILOTS'
-# Usar glob para obtener todos los archivos CSV
-csv_files = glob.glob(os.path.join(mypath, "*.csv"))
-print(f"Archivos CSV encontrados: {csv_files}")
-
-# Colores pastel para las condiciones
-colors = {
-    "T1_dual": '#A7C7E7',  # color pastel rosado
-    "T2_dual": '#D0A8E5',  # color pastel anaranjado
-    "T2_single": '#B3E2D0'  # color pastel verde
-}
-
-# Estilos de línea
-line_styles = {
-    "T1_dual": '-',
-    "T2_dual": '--',
-    "T2_single": '-.'
-}
-
-# Filtramos solo las condiciones de interés (single_condition y dual_condition)
+# Filter only interest conditions (single_condition and dual_condition)
 single_files = [f for f in csv_files if 'single_condition' in f]
 dual_files = [f for f in csv_files if 'dual_condition' in f]
 
-# Inicializar diccionario para almacenar resultados de T2 y T1
+# Store results for T2 and T1
 accuracy_percentage_T2_single_all = {}
 accuracy_percentage_T2_dual_all = {}
 accuracy_percentage_T1_dual_all = {}
 
-# Convertir las columnas relevantes a numéricas
-#df['key_resp_T2.corr'] = pd.to_numeric(df['key_resp_T2.corr'], errors='coerce')
+#Convert colums to numeric format 
+df['key_resp_T2.corr'] = pd.to_numeric(df['key_resp_T2.corr'], errors='coerce')
 df['key_resp_T1.corr'] = pd.to_numeric(df['key_resp_T1.corr'], errors='coerce')
 
-
-# Función para calcular y graficar resultados
+# calculate and graph results
 def calculate_and_plot(df, label, condition_type, color, line_style, condition_data):
-    # Filtrar filas con valores correctos de T2
+    # Only rows with correct values for T2
     df_filtered_T2 = df[df['key_resp_T2.corr'].isin([0, 1])]
 
-    # Filtrar filas con valores correctos de T1
+    # Only rows with correct values for T1
     df_filtered_T1 = df[df['key_resp_T1.corr'].isin([0, 1])]
 
-    # Definir los lags de interés
+    # Define lags of interest 
     lags = [1, 3, 7]
     df_filtered_T2 = df_filtered_T2[df_filtered_T2['lagT1'].isin(lags)]
     df_filtered_T1 = df_filtered_T1[df_filtered_T1['lagT1'].isin(lags)]
 
-    # Calcular el porcentaje de aciertos para T2
+    # Accuracy T2
     total_trials_T2 = df_filtered_T2['lagT1'].value_counts().sort_index()
     correct_trials_T2 = df_filtered_T2[df_filtered_T2['key_resp_T2.corr'] == 1]['lagT1'].value_counts().sort_index()
     accuracy_percentage_T2 = (correct_trials_T2 / total_trials_T2 * 100).fillna(0)
 
-    # Calcular el porcentaje de aciertos para T1
+    # Accuracy T1
     total_trials_T1 = df_filtered_T1['lagT1'].value_counts().sort_index()
     correct_trials_T1 = df_filtered_T1[df_filtered_T1['key_resp_T1.corr'] == 1]['lagT1'].value_counts().sort_index()
     accuracy_percentage_T1 = (correct_trials_T1 / total_trials_T1 * 100).fillna(0)
 
-    # Almacenar resultados según la condición
+    # Store results for both conditions 
     if 'single_condition' in condition_type:
         condition_data['T2_single'][label] = accuracy_percentage_T2
         condition_data['T1_dual'][label] = accuracy_percentage_T1
@@ -88,14 +61,14 @@ def calculate_and_plot(df, label, condition_type, color, line_style, condition_d
         condition_data['T2_dual'][label] = accuracy_percentage_T2
         condition_data['T1_dual'][label] = accuracy_percentage_T1
 
-# Inicializar diccionario para almacenar los resultados por condición
+# Store results for conditions 
 condition_data = {
     "T2_single": {},
     "T2_dual": {},
     "T1_dual": {}
 }
 
-# Iterar sobre todos los archivos CSV (dual_condition y single_condition)
+# Iterate on all CSV archives (dual_condition y single_condition)
 for file in single_files + dual_files:
     df = pd.read_csv(file)
     label = file.split('/')[-1].split('.')[0].split('_')[-1]  # Extraer nombre de la persona del archivo
@@ -108,17 +81,17 @@ for file in single_files + dual_files:
         color = colors['T2_dual']
         line_style = line_styles['T2_dual']
 
-    # Calcular y almacenar resultados para cada archivo
+    # Calculate and store results 
     calculate_and_plot(df, label, condition_type, color, line_style, condition_data)
 
-# Graficar T2 (con bucle para cada condición)
+# Graph T2
 plt.figure(figsize=(10, 5))
 
-# Graficar T2 Dual-Target
+# Graph T2 Dual-Target
 for label, accuracy_percentage in condition_data['T2_dual'].items():
     plt.plot(accuracy_percentage.index, accuracy_percentage.values, marker='o', label=f'T2 Dual-Target {label}', color='red')
 
-# Graficar T2 Single-Target
+# Graph T2 Single-Target
 for label, accuracy_percentage in condition_data['T2_single'].items():
     plt.plot(accuracy_percentage.index, accuracy_percentage.values, marker='s', label=f'T2 Single-Target {label}', color='blue')
 
@@ -131,10 +104,10 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-# Graficar T1 (con bucle para cada condición)
+# Graph T1
 plt.figure(figsize=(10, 5))
 
-# Graficar T1 Dual-Target
+# Graph T1 Dual-Target
 for label, accuracy_percentage in condition_data['T1_dual'].items():
     plt.plot(accuracy_percentage.index, accuracy_percentage.values, marker='x', label=f'T1 Dual-Target {label}', color='green')
 
