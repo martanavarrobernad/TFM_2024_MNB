@@ -2,7 +2,7 @@ import random
 import time
 import datetime
 import psychopy
-import pandas as pd 
+import pandas as pd
 from psychopy import visual, core, event
 import os
 
@@ -27,33 +27,33 @@ def guardar_datos():
     carpeta_resultados = "C:/Users/navar/Desktop/tarea tfm/data"
     if not os.path.exists(carpeta_resultados):
         os.makedirs(carpeta_resultados)
-    
+
     # Buscar el siguiente nombre de archivo disponible para ambos archivos
     i = 1
     while os.path.exists(os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")) or os.path.exists(os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")):
         i += 1
-    
+
     # Nombres de archivo únicos para entrenamiento y tarea
     nombre_archivo_entrenamiento = os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")
     nombre_archivo_tarea = os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")
-    
+
     # Guardar el DataFrame de entrenamiento en el archivo CSV
     if datos_ensayo:
-        df_entrenamiento = pd.DataFrame(datos_ensayo, 
-                                        columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start", 
-                                                 "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)", 
+        df_entrenamiento = pd.DataFrame(datos_ensayo,
+                                        columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                                 "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                                  "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                                 "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta", 
+                                                 "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
                                                  "correct", "Feedback mostrado", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada"])
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
-    
+
     # Guardar el DataFrame de tarea en el archivo CSV
     if datos_principales:
-        df_tarea = pd.DataFrame(datos_principales, 
-                                columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start", 
-                                         "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)", 
+        df_tarea = pd.DataFrame(datos_principales,
+                                columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                         "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                          "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                         "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta", 
+                                         "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
                                          "correct", "Feedback mostrado", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
@@ -199,7 +199,7 @@ def ejecutar_bloque(repeticiones):
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
         win.flip()
-        core.wait(0.5)
+        core.wait(0.5)  # Cruz de fijación aparece durante 500 ms
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
         
         check_exit()
@@ -207,7 +207,8 @@ def ejecutar_bloque(repeticiones):
         imagen_stim.draw()
         win.flip()
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
-        keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
+        keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)  # Imagen aparece durante 1000 ms
+        core.wait(1.0 - (core.getTime() * 1000 - imagen_start_time) / 1000)  # Asegurarse de que la imagen permanezca 1000 ms
         imagen_end_time = core.getTime() * 1000 - tarea_start_time
         
         if keys and keys[0][0] == "escape":
@@ -215,14 +216,25 @@ def ejecutar_bloque(repeticiones):
         key_pressed = 1 if keys else 0
         reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
         reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
+        
+        # Evaluar la respuesta y calcular feedback
         correct, feedback, tipo_asociacion, go_no_go, tecla_registrada = evaluar_respuesta(img, keys)
+        
+        # Mostrar feedback basado en tipo_asociacion
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
-        if feedback != -1:
+        if tipo_asociacion == "100":
             feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
-            feedback_stim.draw()
-            win.flip()
-            core.wait(0.5)
+        elif tipo_asociacion == "90-10":
+            feedback_stim.text = "Correcto" if random.random() < 0.9 else "Incorrecto"
+        elif tipo_asociacion == "80-20":
+            feedback_stim.text = "Correcto" if random.random() < 0.8 else "Incorrecto"
+        
+        feedback_stim.draw()
+        win.flip()
+        core.wait(0.5)
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
+        
+        # Guardar datos del ensayo
         datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__, 
                       60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1], 
                       round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
