@@ -1,0 +1,289 @@
+import random
+import time
+import datetime
+import psychopy
+import pandas as pd
+from psychopy import visual, core, event
+import os
+import serial
+
+# Configuración del puerto serial
+puerto_serial = serial.Serial('COM4', 9600, timeout=1)
+
+# Configuración de la ventana
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
+
+# Lista para almacenar datos de la tarea
+datos_ensayo = []
+datos_principales = []
+
+# Función para verificar si se ha presionado "escape" para salir y guardar los datos
+def check_exit():
+    if "escape" in event.getKeys():
+        print("Cerrando la tarea...")
+        guardar_datos()
+        win.close()
+        core.quit()
+
+# Función para guardar datos en un archivo CSV
+def guardar_datos():
+    # Crear la carpeta 'data' si no existe
+    carpeta_resultados = "C:/Users/navar/Desktop/tarea tfm/data"
+    if not os.path.exists(carpeta_resultados):
+        os.makedirs(carpeta_resultados)
+
+    # Buscar el siguiente nombre de archivo disponible para ambos archivos
+    i = 1
+    while os.path.exists(os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")) or os.path.exists(os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")):
+        i += 1
+
+    # Nombres de archivo únicos para entrenamiento y tarea
+    nombre_archivo_entrenamiento = os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")
+    nombre_archivo_tarea = os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")
+
+    # Guardar el DataFrame de entrenamiento en el archivo CSV
+    if datos_ensayo:
+        df_entrenamiento = pd.DataFrame(datos_ensayo,
+                                        columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                                 "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+                                                 "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+                                                 "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+                                                 "correct", "Feedback mostrado", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada"])
+        df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
+
+    # Guardar el DataFrame de tarea en el archivo CSV
+    if datos_principales:
+        df_tarea = pd.DataFrame(datos_principales,
+                                columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                         "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+                                         "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+                                         "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+                                         "correct", "Feedback mostrado", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada"])
+        df_tarea.to_csv(nombre_archivo_tarea, index=False)
+
+# Mostrar la imagen de bienvenida
+imagen_bienvenida = visual.ImageStim(win, image="C:/Users/navar/Desktop/tarea tfm/¡Bienvenido!, La prueba que estás apunto de realizar consiste en aprender asociaciones entre imágenes y tu respues. Verás fotos de objetos, los cuales van a atener asociado -Responder (presionando.jpg")
+imagen_bienvenida.draw()
+win.flip()
+if "escape" in event.waitKeys(keyList=["space", "escape"]):
+    check_exit()
+
+# Mostrar la imagen de inicio del ensayo
+imagen_ensayo = visual.ImageStim(win, image="C:/Users/navar/Desktop/tarea tfm/Vamos a comenzar con un breve ensayo (1).jpg")
+imagen_ensayo.draw()
+win.flip()
+if "escape" in event.waitKeys(keyList=["space", "escape"]):
+    check_exit()
+
+# Función para pedir datos al usuario
+def get_input(prompt_text):
+    input_text = ""
+    text_stim = visual.TextStim(win, text=prompt_text, color=(-1, -1, -1), height=30, pos=(0, 50))
+    input_stim = visual.TextStim(win, text="_", color=(-1, -1, -1), height=30, pos=(0, -50))
+
+    while True:
+        text_stim.draw()
+        input_stim.text = input_text + "_"
+        input_stim.draw()
+        win.flip()
+
+        keys = event.waitKeys()
+        for key in keys:
+            if key == "space" and input_text:
+                return input_text
+            elif key == "backspace":
+                input_text = input_text[:-1]
+            elif key in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                input_text += key
+            elif key == "escape":
+                print("Cerrando la tarea...")
+                guardar_datos()
+                win.close()
+                core.quit()
+
+# Preguntar por el nombre y la edad
+nombre = get_input("Escribe tu nombre y presiona la barra espaciadora:")
+edad = get_input("Escribe tu edad y presiona la barra espaciadora:")
+
+# Confirmación antes de comenzar
+confirm_text = visual.TextStim(win, text=f"¡Bienvenido {nombre}!\nEdad: {edad}\nPresiona Enter para comenzar.",
+                               color=(-1, -1, -1), height=30)
+confirm_text.draw()
+win.flip()
+if "escape" in event.waitKeys(keyList=["return", "escape"]):
+    check_exit()
+
+# Definir la cruz de fijación
+fixation = visual.TextStim(win, text="+", color=(-1, -1, -1), height=40)
+# Definir el estímulo de la imagen
+imagen_stim = visual.ImageStim(win)
+# Definir el estímulo de feedback
+feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
+
+# Lista de imágenes
+imagenes = [
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/A.jpg",
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/C.jpg",
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/B.jpg",
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/fbE.jpg",
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/F.jpg",
+    "C:/Users/navar/Desktop/tarea tfm/habitual_inhibition/E.jpg"
+]
+
+def seleccionar_imagenes(repeticiones):
+    lista_imagenes = []
+    num_por_imagen = repeticiones // len(imagenes)
+    
+    # Añadir cada imagen el número necesario de veces
+    for img in imagenes:
+        lista_imagenes.extend([img] * num_por_imagen)
+    
+    # Barajar la lista de imágenes
+    random.shuffle(lista_imagenes)
+    return lista_imagenes
+
+def enviar_trigger(trigger):
+    puerto_serial.write(trigger.encode())
+
+def evaluar_respuesta(img, keys):
+    # Determinar la tecla registrada
+    tecla_registrada = keys[0][0] if keys else "N/A"
+
+    # Evaluar la respuesta y determinar los valores de correct y go_no_go
+    correct = -1
+    go_no_go = "N/A"
+
+    if "fbE.jpg" in img:
+        correct = 1 if tecla_registrada == "N/A" else 0
+        go_no_go = "no-go"
+    elif "F.jpg" in img:
+        correct = 1 if tecla_registrada == "N/A" else 0
+        go_no_go = "no-go"
+    elif "A.jpg" in img:
+        correct = 1 if tecla_registrada == "N/A" else 0
+        go_no_go = "no-go"
+    elif "E.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "go"
+    elif "B.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "go"
+    elif "C.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "go"
+    
+    # Determinar el tipo de asociación y el feedback basado en la imagen
+    tipo_asociacion = "N/A"
+    feedback = -1
+
+    if "C.jpg" in img:
+        feedback = 1 if tecla_registrada == "space" else 0
+        tipo_asociacion = "100"
+    elif "B.jpg" in img:
+        feedback = 1 if tecla_registrada == "space" and random.random() < 0.9 else 0
+        tipo_asociacion = "90-10"
+    elif "fbE.jpg" in img:
+        feedback = 0 if tecla_registrada == "space" else 1
+        tipo_asociacion = "100"
+    elif "E.jpg" in img:
+        feedback = 1 if tecla_registrada == "space" and random.random() < 0.8 else 0
+        tipo_asociacion = "80-20"
+    elif "A.jpg" in img:
+        feedback = 1 if tecla_registrada != "space" or random.random() < 0.1 else 0
+        tipo_asociacion = "90-10"
+    elif "F.jpg" in img:
+        feedback = 1 if tecla_registrada != "space" or random.random() < 0.2 else 0
+        tipo_asociacion = "80-20"
+    
+    return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada
+
+def ejecutar_bloque(repeticiones):
+    datos = []
+    lista_imagenes = seleccionar_imagenes(repeticiones)
+    tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
+    for img in lista_imagenes:
+        check_exit()
+        fixation_start_time = core.getTime() * 1000 - tarea_start_time
+        fixation.draw()
+        win.flip()
+        enviar_trigger('1')
+        core.wait(0.5)  # Cruz de fijación aparece durante 500 ms
+        fixation_end_time = core.getTime() * 1000 - tarea_start_time
+        
+        check_exit()
+        imagen_stim.image = img
+        imagen_stim.draw()
+        win.flip()
+        enviar_trigger('2')
+        imagen_start_time = core.getTime() * 1000 - tarea_start_time
+        keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)  # Imagen aparece durante 1000 ms
+        core.wait(1.0 - (core.getTime() * 1000 - imagen_start_time) / 1000)  # Asegurarse de que la imagen permanezca 1000 ms
+        imagen_end_time = core.getTime() * 1000 - tarea_start_time
+        
+        if keys and keys[0][0] == "escape":
+            check_exit()
+        if keys:
+            enviar_trigger('4')
+        key_pressed = 1 if keys else 0
+        reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
+        reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
+        
+        # Evaluar la respuesta y calcular feedback
+        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada = evaluar_respuesta(img, keys)
+        
+        # Mostrar feedback basado en tipo_asociacion
+        feedback_start_time = core.getTime() * 1000 - tarea_start_time
+        if tipo_asociacion == "100":
+            feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        elif tipo_asociacion == "90-10":
+            feedback_stim.text = "Correcto" if random.random() < 0.9 else "Incorrecto"
+        elif tipo_asociacion == "80-20":
+            feedback_stim.text = "Correcto" if random.random() < 0.8 else "Incorrecto"
+        
+        feedback_stim.draw()
+        win.flip()
+        enviar_trigger('3')
+        core.wait(0.5)
+        feedback_end_time = core.getTime() * 1000 - tarea_start_time
+        
+        # Guardar datos del ensayo
+        datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__, 
+                      60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1], 
+                      round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
+                      round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3), 
+                      key_pressed, reaction_time_ms, reaction_time, correct, feedback, tipo_asociacion, go_no_go, tecla_registrada])
+    return datos
+
+# Ejecutar el bloque de ensayo (20 trials)
+try:
+    datos_ensayo = ejecutar_bloque(20)
+
+    # Mostrar pantalla con mensaje de transición
+    transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
+    transicion_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+    # Ejecutar la tarea principal en 4 bloques de 102 trials cada uno
+    for i in range(4):
+        datos_principales += ejecutar_bloque(102)
+        if i < 3:  # No mostrar descanso después del último bloque
+            descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
+            descanso_text.draw()
+            win.flip()
+            if "escape" in event.waitKeys(keyList=["space", "escape"]):
+                check_exit()
+
+    # Mostrar pantalla de finalización
+    final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
+    final_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+finally:
+    guardar_datos()
+    win.close()
+    core.quit()
+    puerto_serial.close()
