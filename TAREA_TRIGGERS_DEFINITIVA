@@ -8,7 +8,7 @@ import os
 import pyxid2
 
 # Configuración de la ventana
-win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
 
 # Configuración del dispositivo para triggers
 devices = pyxid2.get_xid_devices()
@@ -141,11 +141,14 @@ proporciones_congruencia = {
 
 def seleccionar_imagenes(repeticiones):
     lista_imagenes = []
-    num_por_imagen = 68 // len(imagenes)  # Se asegura que haya 68 repeticiones en total
-    for img in imagenes:
-        lista_imagenes.extend([img] * num_por_imagen)  # Repite cada imagen 68 veces
+    num_por_imagen = repeticiones // len(imagenes)
 
-    random.shuffle(lista_imagenes)  # Baraja las imágenes
+    # Añadir cada imagen el número necesario de veces
+    for img in imagenes:
+        lista_imagenes.extend([img] * num_por_imagen)
+
+    # Barajar la lista de imágenes
+    random.shuffle(lista_imagenes)
     return lista_imagenes
 
 def generar_congruencia(total_trials, congruencia_porcentaje):
@@ -271,7 +274,6 @@ def ejecutar_bloque(repeticiones):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-        dev.activate_line(bitmask=4)  # Trigger para feedback
         win.flip()
 
         while True:
@@ -290,6 +292,39 @@ def ejecutar_bloque(repeticiones):
                       tipo_asociacion, go_no_go, tecla_registrada, congruente])
 
     return datos
+
+# Ejecutar el bloque de ensayo (20 trials)
+try:
+    datos_ensayo = ejecutar_bloque(20)
+
+    # Mostrar pantalla con mensaje de transición
+    transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
+    transicion_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+    # Ejecutar la tarea principal en 4 bloques de 102 trials cada uno
+    for i in range(4):
+        datos_principales += ejecutar_bloque(102)
+        if i < 3:  # No mostrar descanso después del último bloque
+            descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
+            descanso_text.draw()
+            win.flip()
+            if "escape" in event.waitKeys(keyList=["space", "escape"]):
+                check_exit()
+
+    # Mostrar pantalla de finalización
+    final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
+    final_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+finally:
+    guardar_datos()
+    win.close()
+    core.quit()
 
 # Ejecutar el bloque de ensayo (20 trials)
 try:
