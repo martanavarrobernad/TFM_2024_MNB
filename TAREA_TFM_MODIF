@@ -274,7 +274,7 @@ def ejecutar_bloque(repeticiones):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-        dev.activate_line(bitmask=1)
+        dev.activate_line(bitmask=4)
         win.flip()
 
         while True:
