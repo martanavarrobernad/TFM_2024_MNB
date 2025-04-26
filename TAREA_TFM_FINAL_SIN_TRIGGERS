@@ -5,7 +5,7 @@ import psychopy
 import pandas as pd
 from psychopy import visual, core, event
 import os
-import pyxid2
+#import pyxid2
 
 # Configuración de la ventana
 win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
