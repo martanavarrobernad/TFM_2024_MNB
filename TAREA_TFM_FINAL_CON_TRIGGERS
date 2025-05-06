@@ -60,19 +60,26 @@ def guardar_datos():
                                                              "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
-# Mostrar la imagen de bienvenida
-imagen_bienvenida = visual.ImageStim(win, image=r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\BIENVEMNIDA.jpg")
-imagen_bienvenida.draw()
-win.flip()
-if "escape" in event.waitKeys(keyList=["space", "escape"]):
-    check_exit()
-
-# Mostrar la imagen de inicio del ensayo
-imagen_ensayo = visual.ImageStim(win, image=r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\Vamos a comenzar con un breve ensayo (1).jpg")
-imagen_ensayo.draw()
-win.flip()
-if "escape" in event.waitKeys(keyList=["space", "escape"]):
-    check_exit()
+imagenes_inhibicion = [
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\1.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\2.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\3.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\4.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\5.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\6.png",
+    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\7.jpg"
+    ]
+for img_path in imagenes_inhibicion:
+    imagen = visual.ImageStim(win, image=img_path)
+    imagen.draw()
+    win.flip()
+    # Esperar a que el participante presione la barra espaciadora para avanzar
+    while True:
+        keys = event.waitKeys(keyList=["space", "escape"])
+        if "space" in keys:
+            break  # Avanzar a la siguiente imagen
+        elif "escape" in keys:
+            check_exit()  # Salir si se presiona Escape
 
 # Función para pedir datos al usuario
 def get_input(prompt_text):
@@ -119,14 +126,13 @@ imagen_stim = visual.ImageStim(win)
 # Definir el estímulo de feedback
 feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
 
-# Lista de imágenes
 imagenes = [
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\A.jpg",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\B.jpg",
     r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\C.jpg",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\E.jpg",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\F.jpg",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\fbE.jpg"
+   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\E.jpg",
+   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\F.jpg",
+   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\fbE.jpg",
+   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\A.jpg",
+   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\B.jpg"
 ]
 
 # Diccionario con la proporción de feedback congruente por imagen
@@ -139,23 +145,88 @@ proporciones_congruencia = {
     'C': 1.0
 }
 
-def seleccionar_imagenes(repeticiones):
+# Definir los triggers únicos para cada imagen
+trigger_map = {
+    'C': 5,  # Go100
+    'B': 6,  # Go90
+    'E': 7,  # Go80
+    'fbE': 8,  # NoGo100
+    'A': 9,  # NoGo90
+    'F': 10  # NoGo80
+}
+
+def seleccionar_imagenes_sin_repeticion(repeticiones):
+    """
+    Genera una lista de imágenes para un bloque, asegurando que no haya dos imágenes iguales seguidas
+    y que no haya más de 4 o 5 go o no-go consecutivos.
+    """
+    # Crear la lista base de imágenes (15 veces cada una de las 6 imágenes para un total de 90)
     lista_imagenes = []
     num_por_imagen = repeticiones // len(imagenes)
 
-    # Añadir cada imagen el número necesario de veces
     for img in imagenes:
         lista_imagenes.extend([img] * num_por_imagen)
 
-    # Barajar la lista de imágenes
-    random.shuffle(lista_imagenes)
-    return lista_imagenes
+    # Crear una lista para almacenar el orden final
+    lista_final = []
+
+    # Mapear imágenes con sus categorías ("go" o "no-go")
+    categorias = {
+        'A': 'no-go',
+        'F': 'no-go',
+        'fbE': 'no-go',
+        'E': 'go',
+        'B': 'go',
+        'C': 'go'
+    }
+
+    # Contadores de secuencias
+    go_count = 0
+    no_go_count = 0
+
+    # Mientras haya imágenes por asignar
+    while lista_imagenes:
+        random.shuffle(lista_imagenes)
+        for img in lista_imagenes:
+            # Obtener la categoría de la imagen
+            nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
+            categoria = categorias.get(nombre_imagen, '')
+
+            # Verificar si se puede agregar la imagen según las reglas
+            if lista_final and lista_final[-1] == img:
+                continue  # No permitir imágenes consecutivas iguales
+            if categoria == "go" and go_count >= 5:
+                continue  # No permitir más de 5 "go" consecutivos
+            if categoria == "no-go" and no_go_count >= 5:
+                continue  # No permitir más de 5 "no-go" consecutivos
+
+            # Agregar la imagen a la lista final
+            lista_final.append(img)
+            lista_imagenes.remove(img)
+
+            # Actualizar los contadores de secuencias
+            if categoria == "go":
+                go_count += 1
+                no_go_count = 0
+            elif categoria == "no-go":
+                no_go_count += 1
+                go_count = 0
+
+            # Reiniciar contadores si se cambia de categoría
+            if go_count == 0:
+                no_go_count = 0
+            elif no_go_count == 0:
+                go_count = 0
+
+            break
+
+    return lista_final
 
 def generar_congruencia(total_trials, congruencia_porcentaje):
     """
     Genera una lista determinista de congruencia/incongruencia basada en el porcentaje deseado.
     """
-    congruentes = int(total_trials * congruencia_porcentaje)
+    congruentes = round(total_trials * congruencia_porcentaje)
     incongruentes = total_trials - congruentes
 
     # Crear la lista con las proporciones exactas
@@ -205,7 +276,7 @@ def evaluar_respuesta(img, keys, congruencia_lista):
     
 def ejecutar_bloque(repeticiones):
     datos = []
-    lista_imagenes = seleccionar_imagenes(repeticiones)
+    lista_imagenes = seleccionar_imagenes_sin_repeticion(repeticiones)
 
     # Crear un diccionario para almacenar las listas de congruencia por imagen
     from collections import Counter
@@ -239,10 +310,13 @@ def ejecutar_bloque(repeticiones):
 
         check_exit()
 
-        # Mostrar imagen
+        # Mostrar imagen con trigger único
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Obtener nombre base de la imagen
         imagen_stim.image = img
         imagen_stim.draw()
-        dev.activate_line(bitmask=2)  # Trigger para imagen
+        # Activar trigger correspondiente a la imagen
+        trigger_value = trigger_map.get(nombre_imagen, 0)  # Usar 0 como valor predeterminado si no está definido
+        dev.activate_line(bitmask=trigger_value)
         win.flip()
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
@@ -252,7 +326,7 @@ def ejecutar_bloque(repeticiones):
             check_exit()
 
         if keys:
-            dev.activate_line(bitmask=3)  # Trigger para tecla presionada
+            dev.activate_line(bitmask=2)  # Trigger para tecla presionada
 
         tiempo_transcurrido = imagen_end_time - imagen_start_time
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
@@ -274,7 +348,7 @@ def ejecutar_bloque(repeticiones):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-        dev.activate_line(bitmask=4)
+        dev.activate_line(bitmask=3)
         win.flip()
 
         while True:
@@ -307,7 +381,7 @@ try:
 
     # Ejecutar la tarea principal en 4 bloques de 102 trials cada uno
     for i in range(4):
-        datos_principales += ejecutar_bloque(102)
+        datos_principales += ejecutar_bloque(90)
         if i < 3:  # No mostrar descanso después del último bloque
             descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
             descanso_text.draw()
