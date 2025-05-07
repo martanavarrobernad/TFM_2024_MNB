@@ -1,0 +1,366 @@
+import random
+import time
+import datetime
+import psychopy
+import pandas as pd
+from psychopy import visual, core, event
+import os
+#import pyxid2
+
+# Directorio donde están los archivos Excel
+ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
+# Obtener lista de archivos Excel en la carpeta
+archivos_excel = [f for f in os.listdir(ruta_carpeta_excel) if f.endswith('.xlsx')]
+# Elegir un archivo Excel aleatorio
+archivo_seleccionado = random.choice(archivos_excel)
+print(f"Archivo seleccionado: {archivo_seleccionado}")
+# Leer el archivo Excel seleccionado
+ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
+df_principal = pd.read_excel(ruta_excel_seleccionado)
+
+# Configuración de la ventana
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
+
+# Configuración del dispositivo para triggers
+#devices = pyxid2.get_xid_devices()
+#if len(devices) == 0:
+#    raise RuntimeError("No se encontró ningún dispositivo XID.")
+#dev = devices[0]  # Seleccionar el primer dispositivo
+#dev.set_pulse_duration(300)  # Configurar duración del pulso en milisegundos
+
+# Lista para almacenar datos de la tarea
+datos_ensayo = []
+datos_principales = []
+
+# Función para verificar si se ha presionado "escape" para salir y guardar los datos
+def check_exit():
+    if "escape" in event.getKeys():
+        print("Cerrando la tarea...")
+        guardar_datos()
+        win.close()
+        core.quit()
+
+# Función para guardar datos en un archivo CSV
+def guardar_datos():
+    carpeta_resultados = r"C:\Users\navar\Desktop\tarea tfm\data"
+    if not os.path.exists(carpeta_resultados):
+        os.makedirs(carpeta_resultados)
+    # Buscar el siguiente nombre de archivo disponible para ambos archivos
+    i = 1
+    while os.path.exists(os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")) or os.path.exists(os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")):
+        i += 1
+
+    nombre_archivo_entrenamiento = os.path.join(carpeta_resultados, f"entrenamiento_sujeto{i:02d}.csv")
+    nombre_archivo_tarea = os.path.join(carpeta_resultados, f"tarea_sujeto{i:02d}.csv")
+
+    # Guardar el dataframe de entrenamiento en el archivo CSV
+    if datos_ensayo:
+        df_entrenamiento = pd.DataFrame(datos_ensayo, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                                               "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+                                                               "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+                                                               "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+        df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
+
+    # Guardar el dataframe de tarea en el archivo CSV
+    if datos_principales:
+        df_tarea = pd.DataFrame(datos_principales, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+                                                             "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+                                                             "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+                                                             "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+        df_tarea.to_csv(nombre_archivo_tarea, index=False)
+
+imagenes_inhibicion = [
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\1.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\2.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\3.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\4.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\5.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\6.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\7.jpg"
+]
+
+for img_path in imagenes_inhibicion:
+    imagen = visual.ImageStim(win, image=img_path)
+    imagen.draw()
+    win.flip()
+    # Esperar a que el participante presione la barra espaciadora para avanzar
+    while True:
+        keys = event.waitKeys(keyList=["space", "escape"])
+        if "space" in keys:
+            break  # Avanzar a la siguiente imagen
+        elif "escape" in keys:
+            check_exit()  # Salir si se presiona Escape
+
+
+# Función para pedir datos al usuario
+def get_input(prompt_text):
+    input_text = ""
+    text_stim = visual.TextStim(win, text=prompt_text, color=(-1, -1, -1), height=30, pos=(0, 50))
+    input_stim = visual.TextStim(win, text="_", color=(-1, -1, -1), height=30, pos=(0, -50))
+
+    while True:
+        text_stim.draw()
+        input_stim.text = input_text + "_"
+        input_stim.draw()
+        win.flip()
+
+        keys = event.waitKeys()
+        for key in keys:
+            if key == "space" and input_text:
+                return input_text
+            elif key == "backspace":
+                input_text = input_text[:-1]
+            elif key in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                input_text += key
+            elif key == "escape":
+                print("Cerrando la tarea...")
+                guardar_datos()
+                win.close()
+                core.quit()
+
+# Preguntar por el nombre y la edad
+nombre = get_input("Escribe tu nombre y presiona la barra espaciadora:")
+edad = get_input("Escribe tu edad y presiona la barra espaciadora:")
+
+# Confirmación antes de comenzar
+confirm_text = visual.TextStim(win, text=f"¡Bienvenido {nombre}!\nEdad: {edad}\nPresiona Enter para comenzar.",
+                               color=(-1, -1, -1), height=30)
+confirm_text.draw()
+win.flip()
+if "escape" in event.waitKeys(keyList=["return", "escape"]):
+    check_exit()
+
+# Definir la cruz de fijación
+fixation = visual.TextStim(win, text="+", color=(-1, -1, -1), height=40)
+# Definir el estímulo de la imagen
+imagen_stim = visual.ImageStim(win)
+# Definir el estímulo de feedback
+feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
+
+# Lista de imágenes
+imagenes = [
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\fbE.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\B.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\C.jpg"
+]
+
+# Diccionario con la proporción de feedback congruente por imagen
+proporciones_congruencia = {
+    'B': 0.9,
+    'E': 0.8,
+    'A': 0.9,
+    'F': 0.8,
+    'fbE': 1.0,
+    'C': 1.0
+}
+
+mapa_imagenes = {
+    '1a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\B.jpg",
+    '2a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\C.jpg",
+    '3a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
+    '4b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
+    '5b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\fbE.jpg",
+    '6b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg"
+}
+
+def generar_congruencia(total_trials, congruencia_porcentaje):
+    """
+    Genera una lista determinista de congruencia/incongruencia basada en el porcentaje deseado.
+    """
+    congruentes = int(total_trials * congruencia_porcentaje)
+    incongruentes = total_trials - congruentes
+
+    # Crear la lista con las proporciones exactas
+    congruencia_lista = [1] * congruentes + [0] * incongruentes  # 1 = congruente, 0 = incongruente
+
+    # Barajar la lista para aleatorizar el orden
+    random.shuffle(congruencia_lista)
+
+    return congruencia_lista
+
+def evaluar_respuesta(img, keys, congruencia_lista):
+    """
+    Evalúa la respuesta del usuario y asigna feedback (congruente o incongruente) basado en la lista de congruencia.
+    """
+    tecla_registrada = keys[0][0] if keys else "N/A"
+    correct = -1
+    go_no_go = "N/A"
+
+    # Determinar si es un ensayo "go" o "no-go"
+    if "fbE.jpg" in img or "F.jpg" in img or "A.jpg" in img:
+        correct = 0 if tecla_registrada == "space" else 1
+        go_no_go = "no-go"
+    elif "E.jpg" in img or "B.jpg" in img or "C.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "go"
+
+    tipo_asociacion = "N/A"
+    feedback = -1
+
+    # Asignar tipo de asociación y calcular feedback basado en la lista determinista
+    if "C.jpg" in img or "fbE.jpg" in img:
+        tipo_asociacion = "100"
+        feedback = correct  # Feedback siempre congruente
+    elif "B.jpg" in img or "A.jpg" in img:
+        tipo_asociacion = "90-10"
+        feedback = correct if congruencia_lista.pop(0) == 1 else abs(correct - 1)
+    elif "E.jpg" in img or "F.jpg" in img:
+        tipo_asociacion = "80-20"
+        feedback = correct if congruencia_lista.pop(0) == 1 else abs(correct - 1)
+
+    congruente = 1 if correct == feedback else 0
+
+    # Log de depuración
+    print(f"Imagen: {img}, Correct: {correct}, Feedback: {feedback}, Tipo Asociación: {tipo_asociacion}, Go/No-Go: {go_no_go}, Congruente: {congruente}")
+
+    return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
+    
+def ejecutar_bloque(lista_imagenes):
+    datos = []
+
+    # Crear un diccionario para almacenar las listas de congruencia por imagen
+    from collections import Counter
+    congruencia_por_imagen = {}
+
+    # Contar cuántas veces aparece cada imagen base (sin extensión)
+    conteo_imagenes = Counter([img.split("\\")[-1].split("/")[-1].split(".")[0] for img in lista_imagenes])
+
+    # Generar una lista de congruencia por imagen según su proporción
+    for nombre_imagen, cantidad in conteo_imagenes.items():
+        porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # por defecto 100%
+        congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
+        print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
+
+    tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
+
+    for img in lista_imagenes:
+        check_exit()
+
+        # Cruz de fijación
+        fixation_start_time = core.getTime() * 1000 - tarea_start_time
+        fixation.draw()
+        #dev.activate_line(bitmask=1)  # Trigger para fijación
+        win.flip()
+
+        while True:
+            fixation_elapsed_time = core.getTime() * 1000 - tarea_start_time - fixation_start_time
+            if fixation_elapsed_time >= 500:
+                break
+
+        fixation_end_time = core.getTime() * 1000 - tarea_start_time
+
+        check_exit()
+
+        # Mostrar imagen
+        imagen_stim.image = img
+        imagen_stim.draw()
+        #dev.activate_line(bitmask=2)  # Trigger para imagen
+        win.flip()
+        imagen_start_time = core.getTime() * 1000 - tarea_start_time
+        keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
+        imagen_end_time = core.getTime() * 1000 - tarea_start_time
+
+        if keys and keys[0][0] == "escape":
+            check_exit()
+
+#        #if keys:
+#            dev.activate_line(bitmask=3)  # Trigger para tecla presionada
+
+        tiempo_transcurrido = imagen_end_time - imagen_start_time
+        tiempo_restante = max(0, 1000 - tiempo_transcurrido)
+        core.wait(tiempo_restante / 1000.0)  # Convertir a segundos
+
+        key_pressed = 1 if keys else 0
+        reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
+        reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
+
+        # Obtener el nombre base de la imagen (sin extensión)
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
+
+        # Evaluar la respuesta usando la lista correcta de congruencia
+        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
+            img, keys, congruencia_por_imagen[nombre_imagen]
+        )
+
+        # Mostrar feedback basado en tipo_asociacion
+        feedback_start_time = core.getTime() * 1000 - tarea_start_time
+        feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        feedback_stim.draw()
+        #dev.activate_line(bitmask=4)
+        win.flip()
+
+        while True:
+            feedback_elapsed_time = core.getTime() * 1000 - tarea_start_time - feedback_start_time
+            if feedback_elapsed_time >= 500:
+                break
+
+        feedback_end_time = core.getTime() * 1000 - tarea_start_time
+
+        # Guardar datos del ensayo
+        datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__,
+                      60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
+                      round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
+                      round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
+                      key_pressed, reaction_time_ms, reaction_time, correct, feedback,
+                      tipo_asociacion, go_no_go, tecla_registrada, congruente])
+
+    return datos
+
+# Ejecutar el bloque de ensayo (20 trials)
+try:
+    # Tomar solo las primeras 20 filas para el ensayo
+    df_ensayo = df_principal.head(20)
+
+    # Extraer la columna "Imagenes" y mapear a rutas
+    lista_codigos_ensayo = df_ensayo["Imágenes"].dropna().tolist()
+    lista_rutas_ensayo = [mapa_imagenes[codigo] for codigo in lista_codigos_ensayo]
+
+    # Ejecutar el bloque con la lista fija
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo)
+
+    # Mostrar pantalla con mensaje de transición
+    transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
+    transicion_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+    # Obtener las rutas para la tarea principal
+    df_tarea = df_principal
+    lista_codigos_tarea = df_tarea["Imágenes"].dropna().tolist()
+    lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
+
+    # Dividir la lista en bloques de 90 imágenes (o menos si no llega)
+    bloque_size = 90
+    for i in range(0, len(lista_rutas_tarea), bloque_size):
+        bloque_actual = lista_rutas_tarea[i:i + bloque_size]
+        datos_principales += ejecutar_bloque(bloque_actual)
+
+        if i + bloque_size < len(lista_rutas_tarea):
+            # Mostrar descanso solo si hay más bloques
+            descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
+            descanso_text.draw()
+            win.flip()
+            if "escape" in event.waitKeys(keyList=["space", "escape"]):
+                check_exit()
+
+    # Mostrar pantalla de finalización al acabar todos los bloques
+    final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
+    final_text.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
+except Exception as e:
+    print(f"Ocurrió un error: {e}")
+
+
+finally:
+    guardar_datos()
+    win.close()
+    core.quit()
