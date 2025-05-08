@@ -1,3 +1,4 @@
+#tareareversal_final
 import random
 import time
 import datetime
@@ -6,6 +7,17 @@ import pandas as pd
 from psychopy import visual, core, event
 import os
 #import pyxid2
+
+# Directorio donde están los archivos Excel
+ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
+# Obtener lista de archivos Excel en la carpeta
+archivos_excel = [f for f in os.listdir(ruta_carpeta_excel) if f.endswith('.xlsx')]
+# Elegir un archivo Excel aleatorio
+archivo_seleccionado = random.choice(archivos_excel)
+print(f"Archivo seleccionado: {archivo_seleccionado}")
+# Leer el archivo Excel seleccionado
+ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
+df_principal = pd.read_excel(ruta_excel_seleccionado)
 
 # Configuración de la ventana
 win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
@@ -60,6 +72,25 @@ def guardar_datos():
                                                              "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
+imagenes_inhibicion = [
+    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\1.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\2.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\3.jpg"
+]
+
+for img_path in imagenes_inhibicion:
+    imagen = visual.ImageStim(win, image=img_path)
+    imagen.draw()
+    win.flip()
+    # Esperar a que el participante presione la barra espaciadora para avanzar
+    while True:
+        keys = event.waitKeys(keyList=["space", "escape"])
+        if "space" in keys:
+            break  # Avanzar a la siguiente imagen
+        elif "escape" in keys:
+            check_exit()  # Salir si se presiona Escape
+
+
 # Función para pedir datos al usuario
 def get_input(prompt_text):
     input_text = ""
@@ -98,33 +129,6 @@ win.flip()
 if "escape" in event.waitKeys(keyList=["return", "escape"]):
     check_exit()
 
-# Lista de imágenes para mostrar inicialmente
-imagenes_introductorias = [
-    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\1.jpg",
-    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\2.jpg",
-    r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\3.jpg"
-]
-
-def mostrar_imagenes_iniciales(imagenes):
-    """
-    Muestra las imágenes de introducción, esperando que el usuario presione la barra espaciadora
-    para pasar a la siguiente imagen.
-    """
-    for imagen in imagenes:
-        imagen_stim = visual.ImageStim(win, image=imagen)
-        imagen_stim.draw()
-        win.flip()
-        # Esperar hasta que se presione la barra espaciadora
-        if "escape" in event.waitKeys(keyList=["space", "escape"]):
-            check_exit()
-
-# Función para verificar si se ha presionado "escape" para salir
-def check_exit():
-    if "escape" in event.getKeys():
-        print("Cerrando la tarea...")
-        win.close()
-        core.quit()
-
 # Definir la cruz de fijación
 fixation = visual.TextStim(win, text="+", color=(-1, -1, -1), height=40)
 # Definir el estímulo de la imagen
@@ -132,7 +136,7 @@ imagen_stim = visual.ImageStim(win)
 # Definir el estímulo de feedback
 feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
 
-# Lista de imágenes a buscar
+# Lista de imágenes
 imagenes = [
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
@@ -152,17 +156,14 @@ proporciones_congruencia = {
     'C': 1.0
 }
 
-def seleccionar_imagenes(repeticiones):
-    lista_imagenes = []
-    num_por_imagen = repeticiones // len(imagenes)
-
-    # Añadir cada imagen el número necesario de veces
-    for img in imagenes:
-        lista_imagenes.extend([img] * num_por_imagen)
-
-    # Barajar la lista de imágenes
-    random.shuffle(lista_imagenes)
-    return lista_imagenes
+mapa_imagenes = {
+    '1a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\B.jpg",
+    '2a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\C.jpg",
+    '3a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
+    '4b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
+    '5b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\fbE.jpg",
+    '6b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg"
+}
 
 def generar_congruencia(total_trials, congruencia_porcentaje):
     """
@@ -227,10 +228,20 @@ def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista):
     print(f"Imagen: {img}, Correct: {correct}, Feedback: {feedback}, Tipo Asociación: {tipo_asociacion}, Go/No-Go: {go_no_go}, Congruente: {congruente}")
 
     return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
-    
-def ejecutar_bloque(repeticiones, bloque_index=0):
+
+def ejecutar_bloque(lista_imagenes, bloque_index=0):
     datos = []
-    lista_imagenes = seleccionar_imagenes(repeticiones)
+    # Mostrar las imágenes "4.jpg" y "5.jpg" antes del bloque 3
+    if bloque_index == 2:
+        imagenes_transicion = [
+            r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\4.jpg",
+            r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\5.jpg"
+        ]
+        for img_path in imagenes_transicion:
+            imagen_stim.image = img_path
+            imagen_stim.draw()
+            win.flip()
+            core.wait(1.0)  # Mostrar cada imagen por 1 segundo (ajustable)
 
     # Crear un diccionario para almacenar las listas de congruencia por imagen
     from collections import Counter
@@ -249,7 +260,6 @@ def ejecutar_bloque(repeticiones, bloque_index=0):
         evaluar_respuesta = evaluar_respuesta_bloques_1_2
     else:
         evaluar_respuesta = evaluar_respuesta_bloques_3_4
-
     tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
 
     for img in lista_imagenes:
@@ -294,9 +304,9 @@ def ejecutar_bloque(repeticiones, bloque_index=0):
 
         # Mostrar feedback
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
-        feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
-        feedback_stim.draw()
-        win.flip()
+        #feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        #feedback_stim.draw()
+        #win.flip()
         while core.getTime() * 1000 - tarea_start_time - feedback_start_time < 500:
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
@@ -315,10 +325,18 @@ def ejecutar_ensayo_20_trials():
     """
     Ejecuta un ensayo inicial con 20 trials siguiendo la lógica de los bloques 1 y 2.
     """
+    texto_ensayo = visual.TextStim(
+        win, 
+        text="Vamos a comenzar con un breve ensayo.", 
+        color=(-1, -1, -1), height=30
+    )
+    texto_ensayo.draw()
+    win.flip()
+    if "escape" in event.waitKeys(keyList=["space", "escape"]):
+        check_exit()
+
     print("Iniciando el ensayo con 20 trials...")
     ensayo_datos = []
-    lista_imagenes = seleccionar_imagenes(20)  # Solo 20 imágenes para el ensayo
-
     # Crear un diccionario para almacenar las listas de congruencia por imagen
     from collections import Counter
     congruencia_por_imagen = {}
@@ -378,9 +396,9 @@ def ejecutar_ensayo_20_trials():
 
         # Mostrar feedback
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
-        feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
-        feedback_stim.draw()
-        win.flip()
+        #feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        #feedback_stim.draw()
+        #win.flip()
         while core.getTime() * 1000 - tarea_start_time - feedback_start_time < 500:
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
@@ -395,38 +413,43 @@ def ejecutar_ensayo_20_trials():
 
     return ensayo_datos
 
+# Ejecutar el bloque de ensayo (20 trials)
 try:
-    # Mostrar las imágenes iniciales
-    mostrar_imagenes_iniciales(imagenes_introductorias)
+    # Tomar solo las primeras 20 filas para el ensayo
+    df_ensayo = df_principal.head(20)
 
-    # Mostrar texto para el ensayo
-    texto_ensayo = visual.TextStim(
-        win, 
-        text="Vamos a comenzar con un breve ensayo.", 
-        color=(-1, -1, -1), height=30
+    # Extraer la columna "Imagenes" y mapear a rutas
+    lista_codigos_ensayo = df_ensayo["Imágenes"].dropna().tolist()
+    lista_rutas_ensayo = [mapa_imagenes[codigo] for codigo in lista_codigos_ensayo]
+
+    # Ejecutar el bloque con la lista fija
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo)
+
+    # Mostrar pantalla con mensaje de transición
+    transicion_text = visual.TextStim(
+        win,
+        text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.",
+        color=(-1, -1, -1),
+        height=30
     )
-    texto_ensayo.draw()
+    transicion_text.draw()
     win.flip()
     if "escape" in event.waitKeys(keyList=["space", "escape"]):
         check_exit()
 
-    # Ejecutar el ensayo inicial con 20 trials
-    datos_ensayo += ejecutar_ensayo_20_trials()
+    # Obtener las rutas para la tarea principal
+    df_tarea = df_principal
+    lista_codigos_tarea = df_tarea["Imágenes"].dropna().tolist()
+    lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
 
-    # Mostrar texto después del ensayo
-    texto_post_ensayo = visual.TextStim(
-        win, 
-        text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", 
-        color=(-1, -1, -1), height=30
-    )
-    texto_post_ensayo.draw()
-    win.flip()
-    if "escape" in event.waitKeys(keyList=["space", "escape"]):
-        check_exit()
+    # Dividir la lista en bloques de 90 imágenes (o menos si no llega)
+    bloque_size = 90
+    bloque_index = 0  # Iniciamos el índice de bloque
 
-    # Ejecutar los bloques principales
-    for bloque_index in range(4):  # Ciclo para los 4 bloques
-        # Mostrar las imágenes "4.jpg" y "5.jpg" antes del bloque 3
+    for i in range(0, len(lista_rutas_tarea), bloque_size):
+        bloque_actual = lista_rutas_tarea[i:i + bloque_size]
+
+        # Mostrar las imágenes de transición antes del bloque 3
         if bloque_index == 2:
             imagenes_transicion = [
                 r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\4.jpg",
@@ -439,25 +462,27 @@ try:
                 if "escape" in event.waitKeys(keyList=["space", "escape"]):
                     check_exit()
 
-        # Ejecutar el bloque con 102 ensayos
-        datos_principales += ejecutar_bloque(102, bloque_index=bloque_index)
+        datos_principales += ejecutar_bloque(bloque_actual, bloque_index=bloque_index)
+        bloque_index += 1
 
-        if bloque_index < 3:
+        if i + bloque_size < len(lista_rutas_tarea):
             descanso_text = visual.TextStim(
-                win, 
-                text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", 
-                color=(-1, -1, -1), height=30
+                win,
+                text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora",
+                color=(-1, -1, -1),
+                height=30
             )
             descanso_text.draw()
             win.flip()
             if "escape" in event.waitKeys(keyList=["space", "escape"]):
                 check_exit()
 
-    # Mostrar el texto final
+    # Mostrar pantalla de finalización al acabar todos los bloques
     final_text = visual.TextStim(
-        win, 
-        text="¡Has terminado con la tarea! Muchas gracias por participar.", 
-        color=(-1, -1, -1), height=30
+        win,
+        text="¡Has terminado con la tarea! Muchas gracias por participar.",
+        color=(-1, -1, -1),
+        height=30
     )
     final_text.draw()
     win.flip()
@@ -465,7 +490,9 @@ try:
         check_exit()
 
 except Exception as e:
-    print(f"Error durante la tarea: {e}")
+    print(f"Ocurrió un error: {e}")
+
 finally:
     guardar_datos()
     win.close()
+    core.quit()
