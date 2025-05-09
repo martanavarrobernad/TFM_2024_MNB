@@ -189,7 +189,21 @@ def generar_congruencia(total_trials, congruencia_porcentaje):
     random.shuffle(congruencia_lista)
 
     return congruencia_lista
+# Generate the congruence list for the entire task
+def generar_congruencia_para_toda_la_tarea(lista_imagenes):
+    from collections import Counter
 
+    # Count how many times each image appears
+    conteo_imagenes = Counter([img.split("\\")[-1].split("/")[-1].split(".")[0] for img in lista_imagenes])
+
+    # Generate congruence lists for each image according to its proportion
+    congruencia_por_imagen = {}
+    for nombre_imagen, cantidad in conteo_imagenes.items():
+        porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # Default to 100%
+        congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
+        print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
+
+    return congruencia_por_imagen
 def evaluar_respuesta_bloques_1_2(img, keys, congruencia_lista):
     tecla_registrada = keys[0][0] if keys else "N/A"
     correct = -1
@@ -239,7 +253,7 @@ def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista):
 
     return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
 
-def ejecutar_bloque(lista_imagenes, bloque_index=0):
+def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
     datos = []
     # Mostrar las imágenes "4.jpg" y "5.jpg" antes del bloque 3
     if bloque_index == 2:
@@ -252,18 +266,6 @@ def ejecutar_bloque(lista_imagenes, bloque_index=0):
             imagen_stim.draw()
             win.flip()
             core.wait(1.0)  # Mostrar cada imagen por 1 segundo (ajustable)
-
-    # Crear un diccionario para almacenar las listas de congruencia por imagen
-    from collections import Counter
-    congruencia_por_imagen = {}
-
-    # Contar cuántas veces aparece cada imagen base (sin extensión)
-    conteo_imagenes = Counter([img.split("\\")[-1].split("/")[-1].split(".")[0] for img in lista_imagenes])
-
-    # Generar una lista de congruencia por imagen según su proporción
-    for nombre_imagen, cantidad in conteo_imagenes.items():
-        porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # por defecto 100%
-        congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
 
     # Selección automática de la función de evaluación según el número de bloque
     if bloque_index in [0, 1]:
@@ -280,12 +282,8 @@ def ejecutar_bloque(lista_imagenes, bloque_index=0):
         fixation.draw()
         dev.activate_line(bitmask=1)  # Trigger para fijación
         win.flip()
-
-        while True:
-            fixation_elapsed_time = core.getTime() * 1000 - tarea_start_time - fixation_start_time
-            if fixation_elapsed_time >= 500:
-                break
-
+        while core.getTime() * 1000 - tarea_start_time - fixation_start_time < 500:
+            pass
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
 
         check_exit()
@@ -295,19 +293,15 @@ def ejecutar_bloque(lista_imagenes, bloque_index=0):
         trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
-# Activar trigger específico
+        # Activar trigger específico
         dev.activate_line(bitmask=trigger_value)
         win.flip()
-
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
         imagen_end_time = core.getTime() * 1000 - tarea_start_time
 
         if keys and keys[0][0] == "escape":
             check_exit()
-
-        if keys:
-            dev.activate_line(bitmask=2)  # Trigger para tecla presionada
 
         tiempo_transcurrido = imagen_end_time - imagen_start_time
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
@@ -436,7 +430,7 @@ def ejecutar_ensayo_20_trials():
 
     return ensayo_datos
 
-# Ejecutar el bloque de ensayo (20 trials)
+# Main task execution
 try:
     # Tomar solo las primeras 20 filas para el ensayo
     df_ensayo = df_principal.head(20)
@@ -445,8 +439,11 @@ try:
     lista_codigos_ensayo = df_ensayo["Imágenes"].dropna().tolist()
     lista_rutas_ensayo = [mapa_imagenes[codigo] for codigo in lista_codigos_ensayo]
 
-    # Ejecutar el bloque con la lista fija
-    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo)
+    # Generar una lista de congruencia específica para el ensayo
+    congruencia_por_imagen_ensayo = generar_congruencia_para_toda_la_tarea(lista_rutas_ensayo)
+
+    # Ejecutar el bloque de ensayo con la lista fija
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo)
 
     # Mostrar pantalla con mensaje de transición
     transicion_text = visual.TextStim(
@@ -464,6 +461,9 @@ try:
     df_tarea = df_principal
     lista_codigos_tarea = df_tarea["Imágenes"].dropna().tolist()
     lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
+
+    # Generate congruence lists for the entire task
+    congruencia_por_imagen = generar_congruencia_para_toda_la_tarea(lista_rutas_tarea)
 
     # Dividir la lista en bloques de 90 imágenes (o menos si no llega)
     bloque_size = 90
@@ -485,7 +485,7 @@ try:
                 if "escape" in event.waitKeys(keyList=["space", "escape"]):
                     check_exit()
 
-        datos_principales += ejecutar_bloque(bloque_actual, bloque_index=bloque_index)
+        datos_principales += ejecutar_bloque(bloque_actual, congruencia_por_imagen, bloque_index=bloque_index)
         bloque_index += 1
 
         if i + bloque_size < len(lista_rutas_tarea):
