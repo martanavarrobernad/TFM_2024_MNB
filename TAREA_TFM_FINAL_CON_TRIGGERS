@@ -7,8 +7,19 @@ from psychopy import visual, core, event
 import os
 import pyxid2
 
+# Directorio donde están los archivos Excel
+ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
+# Obtener lista de archivos Excel en la carpeta
+archivos_excel = [f for f in os.listdir(ruta_carpeta_excel) if f.endswith('.xlsx')]
+# Elegir un archivo Excel aleatorio
+archivo_seleccionado = random.choice(archivos_excel)
+print(f"Archivo seleccionado: {archivo_seleccionado}")
+# Leer el archivo Excel seleccionado
+ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
+df_principal = pd.read_excel(ruta_excel_seleccionado)
+
 # Configuración de la ventana
-win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
 
 # Configuración del dispositivo para triggers
 devices = pyxid2.get_xid_devices()
@@ -31,7 +42,7 @@ def check_exit():
 
 # Función para guardar datos en un archivo CSV
 def guardar_datos():
-    carpeta_resultados = r"C:\Users\usuario\Desktop\TFM_MARTA\data"
+    carpeta_resultados = r"C:\Users\navar\Desktop\tarea tfm\data"
     if not os.path.exists(carpeta_resultados):
         os.makedirs(carpeta_resultados)
     # Buscar el siguiente nombre de archivo disponible para ambos archivos
@@ -61,14 +72,15 @@ def guardar_datos():
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
 imagenes_inhibicion = [
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\1.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\2.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\3.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\4.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\5.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\6.png",
-    r"C:\Users\usuario\Desktop\TFM_MARTA\INHIBICIÓN COGNITIVA-20250430T072050Z-001\INHIBICIÓN COGNITIVA\7.jpg"
-    ]
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\1.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\2.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\3.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\4.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\5.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\6.png",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\7.jpg"
+]
+
 for img_path in imagenes_inhibicion:
     imagen = visual.ImageStim(win, image=img_path)
     imagen.draw()
@@ -80,6 +92,7 @@ for img_path in imagenes_inhibicion:
             break  # Avanzar a la siguiente imagen
         elif "escape" in keys:
             check_exit()  # Salir si se presiona Escape
+
 
 # Función para pedir datos al usuario
 def get_input(prompt_text):
@@ -126,13 +139,14 @@ imagen_stim = visual.ImageStim(win)
 # Definir el estímulo de feedback
 feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
 
+# Lista de imágenes
 imagenes = [
-    r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\C.jpg",
-   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\E.jpg",
-   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\F.jpg",
-   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\fbE.jpg",
-   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\A.jpg",
-   r"C:\Users\usuario\Desktop\TFM_MARTA\TFM_MARTA_IMGS-20250325T105931Z-001\TFM_MARTA_IMGS\B.jpg"
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\fbE.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\B.jpg",
+    r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\C.jpg"
 ]
 
 # Diccionario con la proporción de feedback congruente por imagen
@@ -145,88 +159,30 @@ proporciones_congruencia = {
     'C': 1.0
 }
 
-# Definir los triggers únicos para cada imagen
-trigger_map = {
-    'C': 5,  # Go100
-    'B': 6,  # Go90
-    'E': 7,  # Go80
-    'fbE': 8,  # NoGo100
-    'A': 9,  # NoGo90
-    'F': 10  # NoGo80
+mapa_imagenes = {
+    '1a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\B.jpg",
+    '2a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\C.jpg",
+    '3a': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
+    '4b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
+    '5b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\fbE.jpg",
+    '6b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg"
 }
 
-def seleccionar_imagenes_sin_repeticion(repeticiones):
-    """
-    Genera una lista de imágenes para un bloque, asegurando que no haya dos imágenes iguales seguidas
-    y que no haya más de 4 o 5 go o no-go consecutivos.
-    """
-    # Crear la lista base de imágenes (15 veces cada una de las 6 imágenes para un total de 90)
-    lista_imagenes = []
-    num_por_imagen = repeticiones // len(imagenes)
-
-    for img in imagenes:
-        lista_imagenes.extend([img] * num_por_imagen)
-
-    # Crear una lista para almacenar el orden final
-    lista_final = []
-
-    # Mapear imágenes con sus categorías ("go" o "no-go")
-    categorias = {
-        'A': 'no-go',
-        'F': 'no-go',
-        'fbE': 'no-go',
-        'E': 'go',
-        'B': 'go',
-        'C': 'go'
-    }
-
-    # Contadores de secuencias
-    go_count = 0
-    no_go_count = 0
-
-    # Mientras haya imágenes por asignar
-    while lista_imagenes:
-        random.shuffle(lista_imagenes)
-        for img in lista_imagenes:
-            # Obtener la categoría de la imagen
-            nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
-            categoria = categorias.get(nombre_imagen, '')
-
-            # Verificar si se puede agregar la imagen según las reglas
-            if lista_final and lista_final[-1] == img:
-                continue  # No permitir imágenes consecutivas iguales
-            if categoria == "go" and go_count >= 5:
-                continue  # No permitir más de 5 "go" consecutivos
-            if categoria == "no-go" and no_go_count >= 5:
-                continue  # No permitir más de 5 "no-go" consecutivos
-
-            # Agregar la imagen a la lista final
-            lista_final.append(img)
-            lista_imagenes.remove(img)
-
-            # Actualizar los contadores de secuencias
-            if categoria == "go":
-                go_count += 1
-                no_go_count = 0
-            elif categoria == "no-go":
-                no_go_count += 1
-                go_count = 0
-
-            # Reiniciar contadores si se cambia de categoría
-            if go_count == 0:
-                no_go_count = 0
-            elif no_go_count == 0:
-                go_count = 0
-
-            break
-
-    return lista_final
+# Definir los triggers únicos para cada imagen
+trigger_map = {
+    'C': 5,   # Go100
+    'B': 6,   # Go90
+    'E': 7,   # Go80
+    'fbE': 8, # NoGo100
+    'A': 9,   # NoGo90
+    'F': 10   # NoGo80
+}
 
 def generar_congruencia(total_trials, congruencia_porcentaje):
     """
     Genera una lista determinista de congruencia/incongruencia basada en el porcentaje deseado.
     """
-    congruentes = round(total_trials * congruencia_porcentaje)
+    congruentes = int(total_trials * congruencia_porcentaje)
     incongruentes = total_trials - congruentes
 
     # Crear la lista con las proporciones exactas
@@ -273,10 +229,13 @@ def evaluar_respuesta(img, keys, congruencia_lista):
     print(f"Imagen: {img}, Correct: {correct}, Feedback: {feedback}, Tipo Asociación: {tipo_asociacion}, Go/No-Go: {go_no_go}, Congruente: {congruente}")
 
     return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
-    
-def ejecutar_bloque(repeticiones):
+
+# Triggers para feedback
+FEEDBACK_CORRECTO_TRIGGER = 3
+FEEDBACK_INCORRECTO_TRIGGER = 4
+
+def ejecutar_bloque(lista_imagenes):
     datos = []
-    lista_imagenes = seleccionar_imagenes_sin_repeticion(repeticiones)
 
     # Crear un diccionario para almacenar las listas de congruencia por imagen
     from collections import Counter
@@ -289,6 +248,7 @@ def ejecutar_bloque(repeticiones):
     for nombre_imagen, cantidad in conteo_imagenes.items():
         porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # por defecto 100%
         congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
+        print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
 
     tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
 
@@ -310,14 +270,15 @@ def ejecutar_bloque(repeticiones):
 
         check_exit()
 
-        # Mostrar imagen con trigger único
-        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Obtener nombre base de la imagen
+        # Mostrar imagen con trigger específico
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Nombre sin extensión
+        trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
-        # Activar trigger correspondiente a la imagen
-        trigger_value = trigger_map.get(nombre_imagen, 0)  # Usar 0 como valor predeterminado si no está definido
+# Activar trigger específico
         dev.activate_line(bitmask=trigger_value)
         win.flip()
+
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
         imagen_end_time = core.getTime() * 1000 - tarea_start_time
@@ -348,7 +309,11 @@ def ejecutar_bloque(repeticiones):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-        dev.activate_line(bitmask=3)
+# Activar trigger diferente según el tipo de feedback
+        if feedback == 1:
+           dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
+        else:
+           dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
         win.flip()
 
         while True:
@@ -368,30 +333,45 @@ def ejecutar_bloque(repeticiones):
 
     return datos
 
+# Ejecutar el bloque de ensayo (20 trials)
 try:
-    datos_ensayo = ejecutar_bloque(20)
+    # Tomar solo las primeras 20 filas para el ensayo
+    df_ensayo = df_principal.head(20)
 
+    # Extraer la columna "Imagenes" y mapear a rutas
+    lista_codigos_ensayo = df_ensayo["Imágenes"].dropna().tolist()
+    lista_rutas_ensayo = [mapa_imagenes[codigo] for codigo in lista_codigos_ensayo]
+
+    # Ejecutar el bloque con la lista fija
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo)
+
+    # Mostrar pantalla con mensaje de transición
     transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
     transicion_text.draw()
     win.flip()
     if "escape" in event.waitKeys(keyList=["space", "escape"]):
         check_exit()
 
-    for i in range(4):
-        print(f"Ejecutando bloque {i + 1}...")
-        datos_principales += ejecutar_bloque(90)
+    # Obtener las rutas para la tarea principal
+    df_tarea = df_principal
+    lista_codigos_tarea = df_tarea["Imágenes"].dropna().tolist()
+    lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
 
-        # Liberar recursos de memoria y gráficos
-        win.clearBuffer()
-        dev.reset_base_timer()
+    # Dividir la lista en bloques de 90 imágenes (o menos si no llega)
+    bloque_size = 90
+    for i in range(0, len(lista_rutas_tarea), bloque_size):
+        bloque_actual = lista_rutas_tarea[i:i + bloque_size]
+        datos_principales += ejecutar_bloque(bloque_actual)
 
-        if i < 3:  # Mensaje de descanso
+        if i + bloque_size < len(lista_rutas_tarea):
+            # Mostrar descanso solo si hay más bloques
             descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
             descanso_text.draw()
             win.flip()
             if "escape" in event.waitKeys(keyList=["space", "escape"]):
                 check_exit()
 
+    # Mostrar pantalla de finalización al acabar todos los bloques
     final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
     final_text.draw()
     win.flip()
@@ -399,10 +379,9 @@ try:
         check_exit()
 
 except Exception as e:
-    print(f"Error durante la ejecución: {e}")
-    guardar_datos()
-    win.close()
-    core.quit()
+    print(f"Ocurrió un error: {e}")
+
+
 finally:
     guardar_datos()
     win.close()
