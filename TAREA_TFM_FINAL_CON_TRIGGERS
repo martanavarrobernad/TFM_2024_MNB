@@ -19,7 +19,7 @@ ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
 df_principal = pd.read_excel(ruta_excel_seleccionado)
 
 # Configuración de la ventana
-win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
 
 # Configuración del dispositivo para triggers
 devices = pyxid2.get_xid_devices()
@@ -193,6 +193,22 @@ def generar_congruencia(total_trials, congruencia_porcentaje):
 
     return congruencia_lista
 
+# Generate the congruence list for the entire task
+def generar_congruencia_para_toda_la_tarea(lista_imagenes):
+    from collections import Counter
+
+    # Count how many times each image appears
+    conteo_imagenes = Counter([img.split("\\")[-1].split("/")[-1].split(".")[0] for img in lista_imagenes])
+
+    # Generate congruence lists for each image according to its proportion
+    congruencia_por_imagen = {}
+    for nombre_imagen, cantidad in conteo_imagenes.items():
+        porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # Default to 100%
+        congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
+        print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
+
+    return congruencia_por_imagen
+
 def evaluar_respuesta(img, keys, congruencia_lista):
     """
     Evalúa la respuesta del usuario y asigna feedback (congruente o incongruente) basado en la lista de congruencia.
@@ -234,21 +250,8 @@ def evaluar_respuesta(img, keys, congruencia_lista):
 FEEDBACK_CORRECTO_TRIGGER = 3
 FEEDBACK_INCORRECTO_TRIGGER = 4
 
-def ejecutar_bloque(lista_imagenes):
+def ejecutar_bloque(lista_imagenes, congruencia_por_imagen):
     datos = []
-
-    # Crear un diccionario para almacenar las listas de congruencia por imagen
-    from collections import Counter
-    congruencia_por_imagen = {}
-
-    # Contar cuántas veces aparece cada imagen base (sin extensión)
-    conteo_imagenes = Counter([img.split("\\")[-1].split("/")[-1].split(".")[0] for img in lista_imagenes])
-
-    # Generar una lista de congruencia por imagen según su proporción
-    for nombre_imagen, cantidad in conteo_imagenes.items():
-        porcentaje = proporciones_congruencia.get(nombre_imagen, 1.0)  # por defecto 100%
-        congruencia_por_imagen[nombre_imagen] = generar_congruencia(cantidad, porcentaje)
-        print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
 
     tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
 
@@ -270,15 +273,15 @@ def ejecutar_bloque(lista_imagenes):
 
         check_exit()
 
-        # Mostrar imagen con trigger específico
+        # Mostrar imagen
         nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Nombre sin extensión
         trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
-# Activar trigger específico
+        # Activar trigger específico
         dev.activate_line(bitmask=trigger_value)
         win.flip()
-
+        
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
         imagen_end_time = core.getTime() * 1000 - tarea_start_time
@@ -287,7 +290,7 @@ def ejecutar_bloque(lista_imagenes):
             check_exit()
 
         if keys:
-            dev.activate_line(bitmask=2)  # Trigger para tecla presionada
+            dev.activate_line(bitmask=3)  # Trigger para tecla presionada
 
         tiempo_transcurrido = imagen_end_time - imagen_start_time
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
@@ -309,7 +312,6 @@ def ejecutar_bloque(lista_imagenes):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-# Activar trigger diferente según el tipo de feedback
         if feedback == 1:
            dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
         else:
@@ -333,45 +335,46 @@ def ejecutar_bloque(lista_imagenes):
 
     return datos
 
-# Ejecutar el bloque de ensayo (20 trials)
+# Main task execution
 try:
-    # Tomar solo las primeras 20 filas para el ensayo
+    # Generate congruence list for the entire task
+    lista_codigos_tarea = df_principal["Imágenes"].dropna().tolist()
+    lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
+    congruencia_por_imagen = generar_congruencia_para_toda_la_tarea(lista_rutas_tarea)
+
+    # Run the ensayo (20 trials)
     df_ensayo = df_principal.head(20)
 
-    # Extraer la columna "Imagenes" y mapear a rutas
+    # Extract image codes and map to paths for the ensayo
     lista_codigos_ensayo = df_ensayo["Imágenes"].dropna().tolist()
     lista_rutas_ensayo = [mapa_imagenes[codigo] for codigo in lista_codigos_ensayo]
 
-    # Ejecutar el bloque con la lista fija
-    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo)
+    # Generate a separate congruence list for the ensayo
+    congruencia_por_imagen_ensayo = generar_congruencia_para_toda_la_tarea(lista_rutas_ensayo)
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo)
 
-    # Mostrar pantalla con mensaje de transición
+    # Transition screen after ensayo
     transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
     transicion_text.draw()
     win.flip()
     if "escape" in event.waitKeys(keyList=["space", "escape"]):
         check_exit()
 
-    # Obtener las rutas para la tarea principal
-    df_tarea = df_principal
-    lista_codigos_tarea = df_tarea["Imágenes"].dropna().tolist()
-    lista_rutas_tarea = [mapa_imagenes[codigo] for codigo in lista_codigos_tarea]
-
-    # Dividir la lista en bloques de 90 imágenes (o menos si no llega)
+    # Divide the task into blocks of 90 trials and execute each block
     bloque_size = 90
     for i in range(0, len(lista_rutas_tarea), bloque_size):
         bloque_actual = lista_rutas_tarea[i:i + bloque_size]
-        datos_principales += ejecutar_bloque(bloque_actual)
+        datos_principales += ejecutar_bloque(bloque_actual, congruencia_por_imagen)
 
         if i + bloque_size < len(lista_rutas_tarea):
-            # Mostrar descanso solo si hay más bloques
+            # Show break screen only if there are more blocks
             descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
             descanso_text.draw()
             win.flip()
             if "escape" in event.waitKeys(keyList=["space", "escape"]):
                 check_exit()
 
-    # Mostrar pantalla de finalización al acabar todos los bloques
+    # Show completion screen
     final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
     final_text.draw()
     win.flip()
@@ -380,7 +383,6 @@ try:
 
 except Exception as e:
     print(f"Ocurrió un error: {e}")
-
 
 finally:
     guardar_datos()
