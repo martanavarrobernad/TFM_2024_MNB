@@ -19,7 +19,7 @@ ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
 df_principal = pd.read_excel(ruta_excel_seleccionado)
 
 # Configuración de la ventana
-win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
 
 # Configuración del dispositivo para triggers
 #devices = pyxid2.get_xid_devices()
