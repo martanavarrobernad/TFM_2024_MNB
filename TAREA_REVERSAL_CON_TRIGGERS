@@ -1,4 +1,5 @@
 #tareareversal_final
+#redefinir newgo y newnogo
 import random
 import time
 import datetime
