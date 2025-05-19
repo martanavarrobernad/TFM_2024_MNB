@@ -1,3 +1,4 @@
+#tarea final, cambio feedback, iti, columnas 
 import random
 import time
 import datetime
@@ -19,7 +20,7 @@ ruta_excel_seleccionado = os.path.join(ruta_carpeta_excel, archivo_seleccionado)
 df_principal = pd.read_excel(ruta_excel_seleccionado)
 
 # Configuración de la ventana
-win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=True)
+win = visual.Window(size=(800, 600), color=(1, 1, 1), units="pix", fullscr=False)
 
 # Configuración del dispositivo para triggers
 #devices = pyxid2.get_xid_devices()
@@ -59,7 +60,7 @@ def guardar_datos():
                                                                "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                                                "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                                "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion"])
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
 
     # Guardar el dataframe de tarea en el archivo CSV
@@ -68,7 +69,7 @@ def guardar_datos():
                                                              "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                                              "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                              "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacon"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
 imagenes_inhibicion = [
@@ -235,16 +236,41 @@ def evaluar_respuesta(img, keys, congruencia_lista):
     print(f"Imagen: {img}, Correct: {correct}, Feedback: {feedback}, Tipo Asociación: {tipo_asociacion}, Go/No-Go: {go_no_go}, Congruente: {congruente}")
 
     return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
-    
-def ejecutar_bloque(lista_imagenes, congruencia_por_imagen):
-    datos = []
+def mostrar_retroalimentacion(datos_bloque):
+    idx_correct = 18
+    idx_rt = 17
+    datos_validos = [d for d in datos_bloque if d[idx_correct] in (0, 1)]
+    if datos_validos:
+        aciertos = sum(1 for d in datos_validos if d[idx_correct] == 1)
+        precision = (aciertos / len(datos_validos)) * 100
 
+        tiempos = [d[idx_rt] for d in datos_validos if isinstance(d[idx_rt], (int, float))]
+        velocidad = sum(tiempos) / len(tiempos) if tiempos else 0
+
+        feedback_texto = f"Precisión: {precision:.1f}%\nTiempo de respuesta medio: {velocidad:.0f} ms"
+
+        if precision < 60:
+            mensaje_extra = "Sigue intentándolo."
+        else:
+            mensaje_extra = "¡Sigue así!"
+    else:
+        feedback_texto = "No se han registrado respuestas para calcular el desempeño."
+        mensaje_extra = ""
+
+    feedback_general = f"Retroalimentación del bloque:\n{feedback_texto}\n\n{mensaje_extra}"
+    retro_text = visual.TextStim(win, text=feedback_general, color=(-1, -1, -1), height=30)
+    retro_text.draw()
+    win.flip()
+    event.waitKeys(keyList=["space", "escape"])
+def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
+    datos = []
     tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
 
     for img in lista_imagenes:
         check_exit()
 
         # Cruz de fijación
+        fixation_time = 500 + random.randint(0, 500)  # entre 500 y 1000 ms
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
         #dev.activate_line(bitmask=1)  # Trigger para fijación
@@ -252,7 +278,7 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen):
 
         while True:
             fixation_elapsed_time = core.getTime() * 1000 - tarea_start_time - fixation_start_time
-            if fixation_elapsed_time >= 500:
+            if fixation_elapsed_time >= fixation_time:
                 break
 
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
@@ -304,13 +330,14 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen):
 
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
 
+        go_tipo_asociacion = f"{go_no_go}{tipo_asociacion}"
         # Guardar datos del ensayo
         datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__,
                       60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
                       round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
                       round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
                       key_pressed, reaction_time_ms, reaction_time, correct, feedback,
-                      tipo_asociacion, go_no_go, tecla_registrada, congruente])
+                      tipo_asociacion, go_no_go, tecla_registrada, congruente, bloque_num, go_tipo_asociacion])
 
     return datos
 
@@ -330,7 +357,7 @@ try:
 
     # Generate a separate congruence list for the ensayo
     congruencia_por_imagen_ensayo = generar_congruencia_para_toda_la_tarea(lista_rutas_ensayo)
-    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo)
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo, 0)  # 0 o 1, según prefieras
 
     # Transition screen after ensayo
     transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
@@ -341,17 +368,23 @@ try:
 
     # Divide the task into blocks of 90 trials and execute each block
     bloque_size = 90
-    for i in range(0, len(lista_rutas_tarea), bloque_size):
-        bloque_actual = lista_rutas_tarea[i:i + bloque_size]
-        datos_principales += ejecutar_bloque(bloque_actual, congruencia_por_imagen)
+    num_bloques = (len(lista_rutas_tarea) + bloque_size - 1) // bloque_size
+    for i in range(num_bloques):
+        start = i * bloque_size
+        end = start + bloque_size
+        bloque_actual = lista_rutas_tarea[start:end]
+        datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, i+1)  # i+1 para que el primer bloque sea 1
+        datos_principales += datos_bloque
 
-        if i + bloque_size < len(lista_rutas_tarea):
-            # Show break screen only if there are more blocks
-            descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
-            descanso_text.draw()
-            win.flip()
-            if "escape" in event.waitKeys(keyList=["space", "escape"]):
-                check_exit()
+    # Retroalimentación después del bloque, excepto el último
+        if i < num_bloques - 1:
+           mostrar_retroalimentacion(datos_bloque)
+        # Descanso
+           descanso_text = visual.TextStim(win, text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora", color=(-1, -1, -1), height=30)
+           descanso_text.draw()
+           win.flip()
+           if "escape" in event.waitKeys(keyList=["space", "escape"]):
+               check_exit()
 
     # Show completion screen
     final_text = visual.TextStim(win, text="¡Has terminado con la tarea! Muchas gracias por participar.", color=(-1, -1, -1), height=30)
