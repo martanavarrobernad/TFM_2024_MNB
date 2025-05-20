@@ -60,7 +60,7 @@ def guardar_datos():
                                                                "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                                                "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                                "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
 
     # Guardar el dataframe de tarea en el archivo CSV
@@ -69,7 +69,7 @@ def guardar_datos():
                                                              "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
                                                              "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                              "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente"])
+                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
 imagenes_inhibicion = [
@@ -194,35 +194,56 @@ def generar_congruencia_para_toda_la_tarea(lista_imagenes):
         print(f"Imagen: {nombre_imagen}, Total: {cantidad}, Porcentaje esperado: {porcentaje}, Lista de congruencia: {congruencia_por_imagen[nombre_imagen]}")
 
     return congruencia_por_imagen
+
 def evaluar_respuesta_bloques_1_2(img, keys, congruencia_lista):
     tecla_registrada = keys[0][0] if keys else "N/A"
     correct = -1
     go_no_go = "N/A"
+    newgo = 0
+    newnogo = 0
 
-    if "C.jpg" in img or "F.jpg" in img or "A.jpg" in img:
+    if "fbE.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "newgo"
+        newgo = 1
+    elif "C.jpg" in img:
+        correct = 0 if tecla_registrada == "space" else 1
+        go_no_go = "newno-go"
+        newnogo = 1
+    elif "F.jpg" in img or "A.jpg" in img:
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "no-go"
-    elif "E.jpg" in img or "B.jpg" in img or "fbE.jpg" in img:
+    elif "E.jpg" in img or "B.jpg" in img:
         correct = 1 if tecla_registrada == "space" else 0
         go_no_go = "go"
 
-    return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista)
+    return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo)
 
 def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
     tecla_registrada = keys[0][0] if keys else "N/A"
     correct = -1
     go_no_go = "N/A"
+    newgo = 0
+    newnogo = 0
 
-    if "fbE.jpg" in img or "E.jpg" in img or "A.jpg" in img:
+    if "F.jpg" in img:
+        correct = 1 if tecla_registrada == "space" else 0
+        go_no_go = "newgo"
+        newgo = 1
+    elif "E.jpg" in img:
+        correct = 0 if tecla_registrada == "space" else 1
+        go_no_go = "newno-go"
+        newnogo = 1
+    elif "fbE.jpg" in img or "A.jpg" in img:
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "no-go"
-    elif "F.jpg" in img or "B.jpg" in img or "C.jpg" in img:
+    elif "B.jpg" in img or "C.jpg" in img:
         correct = 1 if tecla_registrada == "space" else 0
         go_no_go = "go"
 
-    return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista)
+    return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo)
 
-def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista):
+def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo):
     tecla_registrada = keys[0][0] if keys else "N/A"
     tipo_asociacion = "N/A"
     feedback = -1
@@ -239,12 +260,33 @@ def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista):
 
     congruente = 1 if correct == feedback else 0
 
-    print(f"Imagen: {img}, Correct: {correct}, Feedback: {feedback}, Tipo Asociación: {tipo_asociacion}, Go/No-Go: {go_no_go}, Congruente: {congruente}")
+    return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente, newgo, newnogo
 
-    return correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente
+def mostrar_retroalimentacion(datos_bloque):
+    idx_correct = 18
+    idx_rt = 17
+    datos_validos = [d for d in datos_bloque if d[idx_correct] in (0, 1)]
+    if datos_validos:
+        aciertos = sum(1 for d in datos_validos if d[idx_correct] == 1)
+        precision = (aciertos / len(datos_validos)) * 100
+        tiempos = [d[idx_rt] for d in datos_validos if isinstance(d[idx_rt], (int, float))]
+        velocidad = sum(tiempos) / len(tiempos) if tiempos else 0
+        feedback_texto = f"Precisión: {precision:.1f}%\nTiempo de respuesta medio: {velocidad:.0f} ms"
+        if precision < 60:
+            mensaje_extra = "Sigue intentándolo."
+        else:
+            mensaje_extra = "¡Sigue así!"
+    else:
+        feedback_texto = "No se han registrado respuestas para calcular el desempeño."
+        mensaje_extra = ""
+    feedback_general = f"Retroalimentación del bloque:\n{feedback_texto}\n\n{mensaje_extra}"
+    retro_text = visual.TextStim(win, text=feedback_general, color=(-1, -1, -1), height=30)
+    retro_text.draw()
+    win.flip()
+    event.waitKeys(keyList=["space", "escape"])
 
 def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
-    datos = []
+    datos_bloque = []
     # Mostrar las imágenes "4.jpg" y "5.jpg" antes del bloque 3
     if bloque_index == 2:
         imagenes_transicion = [
@@ -300,7 +342,7 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
         nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
 
         # Evaluar la respuesta usando la función seleccionada
-        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
+        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente, newgo, newnogo = evaluar_respuesta(
             img, keys, congruencia_por_imagen[nombre_imagen]
         )
 
@@ -313,15 +355,23 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
 
+        go_tipo_asociacion = f"{go_no_go}{tipo_asociacion}"
+        
         # Guardar datos del ensayo
-        datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__,
-                      60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
-                      round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
-                      round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
-                      key_pressed, reaction_time_ms, reaction_time, correct, feedback,
-                      tipo_asociacion, go_no_go, tecla_registrada, congruente])
+        datos_bloque.append([
+            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__,
+            60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
+            round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
+            round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
+            key_pressed, reaction_time_ms, reaction_time, correct, feedback,
+            tipo_asociacion, go_no_go, tecla_registrada, congruente,
+            bloque_index + 1,  # Bloque 1, 2, 3, 4...
+            go_tipo_asociacion,
+            newgo,
+            newnogo
+        ])
 
-    return datos
+    return datos_bloque
 
 def ejecutar_ensayo_20_trials():
     """
@@ -360,10 +410,11 @@ def ejecutar_ensayo_20_trials():
         check_exit()
 
         # Cruz de fijación
+        fixation_time = 500 + random.randint(0, 500)  # entre 500 y 1000 ms
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
         win.flip()
-        while core.getTime() * 1000 - tarea_start_time - fixation_start_time < 500:
+        while core.getTime() * 1000 - tarea_start_time - fixation_start_time < fixation_time:
             pass
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
 
@@ -405,13 +456,15 @@ def ejecutar_ensayo_20_trials():
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
 
+        go_tipo_asociacion = f"{go_no_go}{tipo_asociacion}"
+
         # Guardar datos del ensayo
         ensayo_datos.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Ensayo TFM", psychopy.__version__,
                              60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
                              round(fixation_start_time, 3), round(fixation_end_time, 3), round(imagen_start_time, 3),
                              round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
                              key_pressed, reaction_time_ms, reaction_time, correct, feedback,
-                             tipo_asociacion, go_no_go, tecla_registrada, congruente])
+                             tipo_asociacion, go_no_go, tecla_registrada, congruente, bloque_index + 0, go_tipo_asociacion])
 
     return ensayo_datos
 
@@ -470,10 +523,12 @@ try:
                 if "escape" in event.waitKeys(keyList=["space", "escape"]):
                     check_exit()
 
-        datos_principales += ejecutar_bloque(bloque_actual, congruencia_por_imagen, bloque_index=bloque_index)
+        datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, bloque_index=bloque_index)
+        datos_principales += datos_bloque
         bloque_index += 1
 
         if i + bloque_size < len(lista_rutas_tarea):
+            mostrar_retroalimentacion(datos_bloque)
             descanso_text = visual.TextStim(
                 win,
                 text="Tómate un descanso, y cuando estés preparado para seguir, pulsa la barra espaciadora",
