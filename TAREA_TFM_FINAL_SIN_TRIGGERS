@@ -1,4 +1,4 @@
-#tarea final, cambio feedback, iti, columnas 
+#tarea final sin triggers 
 import random
 import time
 import datetime
@@ -169,6 +169,16 @@ mapa_imagenes = {
     '6b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg"
 }
 
+# Definir los triggers únicos para cada imagen
+trigger_map = {
+    'C': 5,   # Go100
+    'B': 6,   # Go90
+    'E': 7,   # Go80
+    'fbE': 8, # NoGo100
+    'A': 9,   # NoGo90
+    'F': 10   # NoGo80
+}
+
 def generar_congruencia(total_trials, congruencia_porcentaje):
     """
     Genera una lista determinista de congruencia/incongruencia basada en el porcentaje deseado.
@@ -262,7 +272,11 @@ def mostrar_retroalimentacion(datos_bloque):
     retro_text.draw()
     win.flip()
     event.waitKeys(keyList=["space", "escape"])
-def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
+# Triggers para feedback
+FEEDBACK_CORRECTO_TRIGGER = 3
+FEEDBACK_INCORRECTO_TRIGGER = 4
+
+def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_triggers=True):
     datos = []
     tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
 
@@ -273,7 +287,8 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
         fixation_time = 500 + random.randint(0, 500)  # entre 500 y 1000 ms
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
-        #dev.activate_line(bitmask=1)  # Trigger para fijación
+        #if enviar_triggers:
+        #    dev.activate_line(bitmask=1)  # Trigger para fijación
         win.flip()
 
         while True:
@@ -286,9 +301,13 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
         check_exit()
 
         # Mostrar imagen
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Nombre sin extensión
+        trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
-        #dev.activate_line(bitmask=2)  # Trigger para imagen
+        # Activar trigger específico SOLO si corresponde
+        #if enviar_triggers:
+        #    dev.activate_line(bitmask=trigger_value)
         win.flip()
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
@@ -297,8 +316,8 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
         if keys and keys[0][0] == "escape":
             check_exit()
 
-#        #if keys:
-#            dev.activate_line(bitmask=3)  # Trigger para tecla presionada
+        #if enviar_triggers and keys:
+        #    dev.activate_line(bitmask=2)  # Trigger para tecla presionada
 
         tiempo_transcurrido = imagen_end_time - imagen_start_time
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
@@ -307,9 +326,6 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
         key_pressed = 1 if keys else 0
         reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
         reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
-
-        # Obtener el nombre base de la imagen (sin extensión)
-        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
 
         # Evaluar la respuesta usando la lista correcta de congruencia
         correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
@@ -320,7 +336,11 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num):
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
-        #dev.activate_line(bitmask=4)
+        #if enviar_triggers:
+            #if feedback == 1:
+            #   dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
+            #else:
+            #   dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
         win.flip()
 
         while True:
@@ -357,7 +377,7 @@ try:
 
     # Generate a separate congruence list for the ensayo
     congruencia_por_imagen_ensayo = generar_congruencia_para_toda_la_tarea(lista_rutas_ensayo)
-    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo, 0)  # 0 o 1, según prefieras
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo, 0, enviar_triggers=False)  # 0 o 1, según prefieras
 
     # Transition screen after ensayo
     transicion_text = visual.TextStim(win, text="¡Muy bien! Ahora que has comprendido la tarea, vamos a realizar la prueba. Pulsa la barra espaciadora cuando estés preparado para comenzar.", color=(-1, -1, -1), height=30)
@@ -373,7 +393,7 @@ try:
         start = i * bloque_size
         end = start + bloque_size
         bloque_actual = lista_rutas_tarea[start:end]
-        datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, i+1)  # i+1 para que el primer bloque sea 1
+        datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, i+1, enviar_triggers=True)  # i+1 para que el primer bloque sea 1
         datos_principales += datos_bloque
 
     # Retroalimentación después del bloque, excepto el último
