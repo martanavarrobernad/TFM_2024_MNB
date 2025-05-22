@@ -56,35 +56,43 @@ def guardar_datos():
 
     # Guardar el dataframe de entrenamiento en el archivo CSV
     if datos_ensayo:
-        df_entrenamiento = pd.DataFrame(datos_ensayo, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
-                                                               "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
-                                                               "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                                               "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
-        # Añadir GoNoGoSimple
+        df_entrenamiento = pd.DataFrame(datos_ensayo, columns=[
+            "Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+            "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+            "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+            "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+            "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente",
+            "Bloque", "GoTipoAsociacion", "newgo", "newno-go"
+        ])
+        # Añadir columnas simples
         def simple_gonogo(row):
             if row["Go/No-Go"] in ["go", "newgo"]:
                 return "go"
             else:
                 return "no-go"
         df_entrenamiento["GoNoGoSimple"] = df_entrenamiento.apply(simple_gonogo, axis=1)
+        df_entrenamiento["GoSimpleTipo"] = df_entrenamiento["GoNoGoSimple"] + df_entrenamiento["Tipo de Asociación"]
         # Guardar
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
 
     # Guardar el dataframe de tarea en el archivo CSV
     if datos_principales:
-        df_tarea = pd.DataFrame(datos_principales, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
-                                                             "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
-                                                             "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                                             "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
-        # Añadir GoNoGoSimple
+        df_tarea = pd.DataFrame(datos_principales, columns=[
+            "Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+            "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+            "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+            "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+            "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente",
+            "Bloque", "GoTipoAsociacion", "newgo", "newno-go"
+        ])
+        # Añadir columnas simples
         def simple_gonogo(row):
             if row["Go/No-Go"] in ["go", "newgo"]:
                 return "go"
             else:
                 return "no-go"
         df_tarea["GoNoGoSimple"] = df_tarea.apply(simple_gonogo, axis=1)
+        df_tarea["GoSimpleTipo"] = df_tarea["GoNoGoSimple"] + df_tarea["Tipo de Asociación"]
         # Guardar
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
