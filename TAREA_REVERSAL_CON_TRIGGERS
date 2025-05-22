@@ -1,4 +1,4 @@
-#tareareversal_final_con_triggers
+#tareareversal_final
 #CAMBIOS: obtener numeor de bloque, retroalimentación, columna combinada, definir newgo
 import random
 import time
@@ -42,7 +42,6 @@ def check_exit():
         win.close()
         core.quit()
 
-# Función para guardar datos en un archivo CSV
 def guardar_datos():
     carpeta_resultados = r"C:\Users\navar\Desktop\tarea tfm\data_reversal"
     if not os.path.exists(carpeta_resultados):
@@ -57,20 +56,44 @@ def guardar_datos():
 
     # Guardar el dataframe de entrenamiento en el archivo CSV
     if datos_ensayo:
-        df_entrenamiento = pd.DataFrame(datos_ensayo, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
-                                                               "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
-                                                               "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                                               "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                               "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
+        df_entrenamiento = pd.DataFrame(datos_ensayo, columns=[
+            "Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+            "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+            "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+            "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+            "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente",
+            "Bloque", "GoTipoAsociacion", "newgo", "newno-go"
+        ])
+        # Añadir columnas simples
+        def simple_gonogo(row):
+            if row["Go/No-Go"] in ["go", "newgo"]:
+                return "go"
+            else:
+                return "no-go"
+        df_entrenamiento["GoNoGoSimple"] = df_entrenamiento.apply(simple_gonogo, axis=1)
+        df_entrenamiento["GoSimpleTipo"] = df_entrenamiento["GoNoGoSimple"] + df_entrenamiento["Tipo de Asociación"]
+        # Guardar
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
 
     # Guardar el dataframe de tarea en el archivo CSV
     if datos_principales:
-        df_tarea = pd.DataFrame(datos_principales, columns=["Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
-                                                             "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
-                                                             "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
-                                                             "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
-                                                             "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
+        df_tarea = pd.DataFrame(datos_principales, columns=[
+            "Fecha", "Expname", "Version PsychoPy", "Refresh Rate", "Frame Rate", "Exp Start",
+            "Participante", "Edad", "Imagen", "Inicio Fijación (ms)", "Fin Fijación (ms)",
+            "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
+            "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
+            "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente",
+            "Bloque", "GoTipoAsociacion", "newgo", "newno-go"
+        ])
+        # Añadir columnas simples
+        def simple_gonogo(row):
+            if row["Go/No-Go"] in ["go", "newgo"]:
+                return "go"
+            else:
+                return "no-go"
+        df_tarea["GoNoGoSimple"] = df_tarea.apply(simple_gonogo, axis=1)
+        df_tarea["GoSimpleTipo"] = df_tarea["GoNoGoSimple"] + df_tarea["Tipo de Asociación"]
+        # Guardar
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
 imagenes_inhibicion = [
@@ -175,12 +198,12 @@ trigger_map = {
     'A': 9,   # NoGo90
     'F': 10   # NoGo80
 }
-
+# Definir triggers únicos para newgo y newno-go
 trigger_new_map = {
-    'newgo100': 11,
-    'newgo80': 12,
-    'newno-go100': 13,
-    'newno-go80': 14
+    'newgo100': 11,     # Trigger para newgo
+    'newnogo100': 12,   # Trigger para newno-go
+    'newgo80': 13,
+    'newnogo80':14
 }
 
 def generar_congruencia(total_trials, congruencia_porcentaje):
@@ -244,7 +267,10 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
     newgo = 0
     newnogo = 0
 
-    if "F.jpg" in img:
+    if "fbE.jpg" in img:
+        correct = 0 if tecla_registrada == "space" else 1
+        go_no_go = "no-go"
+    elif "F.jpg" in img:
         correct = 1 if tecla_registrada == "space" else 0
         go_no_go = "newgo"
         newgo = 1
@@ -252,7 +278,7 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "newno-go"
         newnogo = 1
-    elif "fbE.jpg" in img or "A.jpg" in img:
+    elif "A.jpg" in img:
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "no-go"
     elif "B.jpg" in img or "C.jpg" in img:
@@ -260,7 +286,6 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
         go_no_go = "go"
 
     return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo)
-
 def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo):
     tecla_registrada = keys[0][0] if keys else "N/A"
     tipo_asociacion = "N/A"
@@ -353,20 +378,25 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0, envi
         )
 
         if enviar_triggers:
+            # Determinar tipo de trigger especial para newgo/newnogo con tipo_asociacion
+            tipo_trigger = None
             if newgo:
                 if tipo_asociacion_sim == "100":
-                    dev.activate_line(bitmask=trigger_new_map['newgo100'])
+                    tipo_trigger = 'newgo100'
                 elif tipo_asociacion_sim == "80-20":
-                    dev.activate_line(bitmask=trigger_new_map['newgo80'])
+                    tipo_trigger = 'newgo80'
             elif newnogo:
                 if tipo_asociacion_sim == "100":
-                    dev.activate_line(bitmask=trigger_new_map['newno-go100'])
+                    tipo_trigger = 'newnogo100'
                 elif tipo_asociacion_sim == "80-20":
-                    dev.activate_line(bitmask=trigger_new_map['newno-go80'])
+                    tipo_trigger = 'newnogo80'
+
+            if tipo_trigger and tipo_trigger in trigger_new_map:
+                dev.activate_line(bitmask=trigger_new_map[tipo_trigger])
             elif nombre_imagen in trigger_map:
                 dev.activate_line(bitmask=trigger_map[nombre_imagen])
-            #else:
-            #    dev.activate_line(bitmask=2)  # Trigger por defecto si no hay match
+            else:
+                dev.activate_line(bitmask=3)  # Trigger por defecto si no hay match
 
         # Mostrar imagen
         imagen_stim.image = img
@@ -458,6 +488,7 @@ def ejecutar_ensayo_20_trials():
         fixation_time = 500 + random.randint(0, 500)  # entre 500 y 1000 ms
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
+        #dev.activate_line(bitmask=1)  # Trigger para fijación
         win.flip()
 
         while True:
@@ -498,6 +529,9 @@ def ejecutar_ensayo_20_trials():
 
         # Mostrar feedback
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
+        #feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        #feedback_stim.draw()
+        #win.flip()
         while core.getTime() * 1000 - tarea_start_time - feedback_start_time < 500:
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
