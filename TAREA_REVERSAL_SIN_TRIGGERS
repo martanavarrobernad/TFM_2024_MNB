@@ -1,4 +1,5 @@
 #tareareversal_final
+#CAMBIOS: obtener numeor de bloque, retroalimentación, columna combinada, definir newgo
 import random
 import time
 import datetime
@@ -9,7 +10,7 @@ import os
 #import pyxid2
 
 # Directorio donde están los archivos Excel
-ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
+ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS REVERSAL"
 # Obtener lista de archivos Excel en la carpeta
 archivos_excel = [f for f in os.listdir(ruta_carpeta_excel) if f.endswith('.xlsx')]
 # Elegir un archivo Excel aleatorio
@@ -41,7 +42,6 @@ def check_exit():
         win.close()
         core.quit()
 
-# Función para guardar datos en un archivo CSV
 def guardar_datos():
     carpeta_resultados = r"C:\Users\navar\Desktop\tarea tfm\data_reversal"
     if not os.path.exists(carpeta_resultados):
@@ -61,6 +61,14 @@ def guardar_datos():
                                                                "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                                "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
                                                                "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
+        # Añadir GoNoGoSimple
+        def simple_gonogo(row):
+            if row["Go/No-Go"] in ["go", "newgo"]:
+                return "go"
+            else:
+                return "no-go"
+        df_entrenamiento["GoNoGoSimple"] = df_entrenamiento.apply(simple_gonogo, axis=1)
+        # Guardar
         df_entrenamiento.to_csv(nombre_archivo_entrenamiento, index=False)
 
     # Guardar el dataframe de tarea en el archivo CSV
@@ -70,6 +78,14 @@ def guardar_datos():
                                                              "Inicio Imagen (ms)", "Fin Imagen (ms)", "Inicio Feedback (ms)", "Fin Feedback (ms)",
                                                              "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
                                                              "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacion", "newgo", "newno-go"])
+        # Añadir GoNoGoSimple
+        def simple_gonogo(row):
+            if row["Go/No-Go"] in ["go", "newgo"]:
+                return "go"
+            else:
+                return "no-go"
+        df_tarea["GoNoGoSimple"] = df_tarea.apply(simple_gonogo, axis=1)
+        # Guardar
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
 
 imagenes_inhibicion = [
@@ -165,6 +181,21 @@ mapa_imagenes = {
     '6b': r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\A.jpg"
 }
 
+# Definir triggers únicos para cada imagen estándar
+trigger_map = {
+    'C': 5,   # Go100
+    'B': 6,   # Go90
+    'E': 7,   # Go80
+    'fbE': 8, # NoGo100
+    'A': 9,   # NoGo90
+    'F': 10   # NoGo80
+}
+# Definir triggers únicos para newgo y newno-go
+trigger_new_map = {
+    'newgo': 11,     # Trigger para newgo
+    'newno-go': 12   # Trigger para newno-go
+}
+
 def generar_congruencia(total_trials, congruencia_porcentaje):
     """
     Genera una lista determinista de congruencia/incongruencia basada en el porcentaje deseado.
@@ -226,7 +257,10 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
     newgo = 0
     newnogo = 0
 
-    if "F.jpg" in img:
+    if "fbE.jpg" in img:
+        correct = 0 if tecla_registrada == "space" else 1
+        go_no_go = "no-go"
+    elif "F.jpg" in img:
         correct = 1 if tecla_registrada == "space" else 0
         go_no_go = "newgo"
         newgo = 1
@@ -234,7 +268,7 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "newno-go"
         newnogo = 1
-    elif "fbE.jpg" in img or "A.jpg" in img:
+    elif "A.jpg" in img:
         correct = 0 if tecla_registrada == "space" else 1
         go_no_go = "no-go"
     elif "B.jpg" in img or "C.jpg" in img:
@@ -242,7 +276,6 @@ def evaluar_respuesta_bloques_3_4(img, keys, congruencia_lista):
         go_no_go = "go"
 
     return evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo)
-
 def evaluar_restante(img, correct, go_no_go, keys, congruencia_lista, newgo, newnogo):
     tecla_registrada = keys[0][0] if keys else "N/A"
     tipo_asociacion = "N/A"
@@ -285,9 +318,9 @@ def mostrar_retroalimentacion(datos_bloque):
     win.flip()
     event.waitKeys(keyList=["space", "escape"])
 
-def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
+def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0, enviar_triggers=True):
     datos_bloque = []
-    # Mostrar las imágenes "4.jpg" y "5.jpg" antes del bloque 3
+
     if bloque_index == 2:
         imagenes_transicion = [
             r"C:\Users\navar\Desktop\tarea tfm\reversal\Copia de INHIBICIÓN COGNITIVA\4.jpg",
@@ -297,27 +330,52 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
             imagen_stim.image = img_path
             imagen_stim.draw()
             win.flip()
-            core.wait(1.0)  # Mostrar cada imagen por 1 segundo (ajustable)
+            core.wait(1.0)
 
-    # Selección automática de la función de evaluación según el número de bloque
     if bloque_index in [0, 1]:
         evaluar_respuesta = evaluar_respuesta_bloques_1_2
     else:
         evaluar_respuesta = evaluar_respuesta_bloques_3_4
-    tarea_start_time = core.getTime() * 1000  # Tiempo inicial de la tarea en milisegundos
+    tarea_start_time = core.getTime() * 1000
 
     for img in lista_imagenes:
         check_exit()
 
         # Cruz de fijación
+        fixation_time = 500 + random.randint(0, 500)
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
+        #if enviar_triggers:
+        #    dev.activate_line(bitmask=1)
         win.flip()
-        while core.getTime() * 1000 - tarea_start_time - fixation_start_time < 500:
-            pass
+
+        while True:
+            fixation_elapsed_time = core.getTime() * 1000 - tarea_start_time - fixation_start_time
+            if fixation_elapsed_time >= fixation_time:
+                break
+
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
 
         check_exit()
+
+        # Obtener el nombre base de la imagen (sin extensión)
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
+
+        # --- Decidir trigger ANTES de mostrar la imagen ---
+        congruencia_simulada = congruencia_por_imagen[nombre_imagen][:]
+        correct_sim, feedback_sim, tipo_asociacion_sim, go_no_go_sim, tecla_registrada_sim, congruente_sim, newgo, newnogo = evaluar_respuesta(
+            img, [], congruencia_simulada
+        )
+
+        #if enviar_triggers:
+            #if newgo:
+            #    dev.activate_line(bitmask=trigger_new_map['newgo'])
+            #elif newnogo:
+            #    dev.activate_line(bitmask=trigger_new_map['newno-go'])
+            #elif nombre_imagen in trigger_map:
+            #    dev.activate_line(bitmask=trigger_map[nombre_imagen])
+            #else:
+            #    dev.activate_line(bitmask=2)  # Trigger por defecto si no hay match
 
         # Mostrar imagen
         imagen_stim.image = img
@@ -330,34 +388,30 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
         if keys and keys[0][0] == "escape":
             check_exit()
 
+        #if enviar_triggers and keys:
+        #    dev.activate_line(bitmask=3)  # Trigger para tecla presionada
+
         tiempo_transcurrido = imagen_end_time - imagen_start_time
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
-        core.wait(tiempo_restante / 1000.0)  # Convertir a segundos
+        core.wait(tiempo_restante / 1000.0)
 
         key_pressed = 1 if keys else 0
         reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
         reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
 
-        # Obtener el nombre base de la imagen (sin extensión)
-        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]
-
-        # Evaluar la respuesta usando la función seleccionada
-        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente, newgo, newnogo = evaluar_respuesta(
+        # Evaluar la respuesta real para guardar datos finales
+        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente, newgo_real, newnogo_real = evaluar_respuesta(
             img, keys, congruencia_por_imagen[nombre_imagen]
         )
 
         # Mostrar feedback
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
-        #feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
-        #feedback_stim.draw()
-        #win.flip()
         while core.getTime() * 1000 - tarea_start_time - feedback_start_time < 500:
             pass
         feedback_end_time = core.getTime() * 1000 - tarea_start_time
 
         go_tipo_asociacion = f"{go_no_go}{tipo_asociacion}"
-        
-        # Guardar datos del ensayo
+
         datos_bloque.append([
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Tarea TFM", psychopy.__version__,
             60, 60, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nombre, edad, img.split("/")[-1],
@@ -365,10 +419,10 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0):
             round(imagen_end_time, 3), round(feedback_start_time, 3), round(feedback_end_time, 3),
             key_pressed, reaction_time_ms, reaction_time, correct, feedback,
             tipo_asociacion, go_no_go, tecla_registrada, congruente,
-            bloque_index + 1,  # Bloque 1, 2, 3, 4...
+            bloque_index + 1,
             go_tipo_asociacion,
-            newgo,
-            newnogo
+            newgo_real,
+            newnogo_real
         ])
 
     return datos_bloque
@@ -413,9 +467,14 @@ def ejecutar_ensayo_20_trials():
         fixation_time = 500 + random.randint(0, 500)  # entre 500 y 1000 ms
         fixation_start_time = core.getTime() * 1000 - tarea_start_time
         fixation.draw()
+        #dev.activate_line(bitmask=1)  # Trigger para fijación
         win.flip()
-        while core.getTime() * 1000 - tarea_start_time - fixation_start_time < fixation_time:
-            pass
+
+        while True:
+            fixation_elapsed_time = core.getTime() * 1000 - tarea_start_time - fixation_start_time
+            if fixation_elapsed_time >= fixation_time:
+                break
+
         fixation_end_time = core.getTime() * 1000 - tarea_start_time
 
         check_exit()
@@ -481,7 +540,7 @@ try:
     congruencia_por_imagen_ensayo = generar_congruencia_para_toda_la_tarea(lista_rutas_ensayo)
 
     # Ejecutar el bloque de ensayo con la lista fija
-    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo)
+    datos_ensayo = ejecutar_bloque(lista_rutas_ensayo, congruencia_por_imagen_ensayo, enviar_triggers=False)
 
     # Mostrar pantalla con mensaje de transición
     transicion_text = visual.TextStim(
@@ -523,7 +582,7 @@ try:
                 if "escape" in event.waitKeys(keyList=["space", "escape"]):
                     check_exit()
 
-        datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, bloque_index=bloque_index)
+        datos_bloque = datos_bloque = ejecutar_bloque(bloque_actual, congruencia_por_imagen, bloque_index=bloque_index, enviar_triggers=True)
         datos_principales += datos_bloque
         bloque_index += 1
 
