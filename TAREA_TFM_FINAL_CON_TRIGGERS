@@ -305,7 +305,7 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
         trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
-        Activar trigger específico SOLO si corresponde
+        #Activar trigger específico SOLO si corresponde
         if enviar_triggers:
             dev.activate_line(bitmask=trigger_value)
         win.flip()
