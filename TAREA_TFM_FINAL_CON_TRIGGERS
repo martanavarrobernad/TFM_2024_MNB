@@ -344,10 +344,10 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
         if enviar_triggers:
-            if feedback == 1:
-               dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
-            else:
-               dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
+           if correct == 1:
+            dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
+        elif correct == 0:
+            dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
         win.flip()
 
         while True:
