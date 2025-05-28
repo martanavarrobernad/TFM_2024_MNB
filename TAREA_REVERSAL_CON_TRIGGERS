@@ -404,8 +404,8 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0, envi
         imagen_stim.image = img
         imagen_stim.draw()
         # Activar trigger específico SOLO si corresponde
-        #if enviar_triggers:
-        #    dev.activate_line(bitmask=trigger_value)
+        if enviar_triggers:
+            dev.activate_line(bitmask=trigger_value)
         win.flip()
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
