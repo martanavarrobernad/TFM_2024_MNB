@@ -399,26 +399,33 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_index=0, envi
                 dev.activate_line(bitmask=3)  # Trigger por defecto si no hay match
 
         # Mostrar imagen
+        nombre_imagen = img.split("\\")[-1].split("/")[-1].split(".")[0]  # Nombre sin extensión
+        trigger_value = trigger_map.get(nombre_imagen, 0)  # 0 por defecto si no se encuentra
         imagen_stim.image = img
         imagen_stim.draw()
+        # Activar trigger específico SOLO si corresponde
+        #if enviar_triggers:
+        #    dev.activate_line(bitmask=trigger_value)
         win.flip()
         imagen_start_time = core.getTime() * 1000 - tarea_start_time
         keys = event.waitKeys(maxWait=1.0, keyList=["space", "escape"], timeStamped=True)
-        imagen_end_time = core.getTime() * 1000 - tarea_start_time
 
         if keys and keys[0][0] == "escape":
             check_exit()
 
+        reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
+        reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
+
         if enviar_triggers and keys:
             dev.activate_line(bitmask=2)  # Trigger para tecla presionada
 
-        tiempo_transcurrido = imagen_end_time - imagen_start_time
+        tiempo_transcurrido = (keys[0][1] * 1000 - tarea_start_time - imagen_start_time) if keys else 1000
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
-        core.wait(tiempo_restante / 1000.0)
+        core.wait(tiempo_restante / 1000.0)  # Espera hasta que se cumplan los 1000 ms
+        # ¡AHORA! Aquí es donde realmente desaparece la imagen:
+        imagen_end_time = core.getTime() * 1000 - tarea_start_time
 
         key_pressed = 1 if keys else 0
-        reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
-        reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
 
         # Evaluar la respuesta real para guardar datos finales
         correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente, newgo_real, newnogo_real = evaluar_respuesta(
