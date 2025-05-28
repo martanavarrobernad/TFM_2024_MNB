@@ -333,21 +333,16 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
         correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
             img, keys, congruencia_por_imagen[nombre_imagen]
         )
-
-        # Evaluar la respuesta usando la lista correcta de congruencia
-        correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
-            img, keys, congruencia_por_imagen[nombre_imagen]
-        )
-
-        # Mostrar feedback basado en tipo_asociacion
-        feedback_start_time = core.getTime() * 1000 - tarea_start_time
-        feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
-        feedback_stim.draw()
         if enviar_triggers:
            if correct == 1:
             dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
         elif correct == 0:
             dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
+
+        # Mostrar feedback basado en tipo_asociacion
+        feedback_start_time = core.getTime() * 1000 - tarea_start_time
+        feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
+        feedback_stim.draw()
         win.flip()
 
         while True:
