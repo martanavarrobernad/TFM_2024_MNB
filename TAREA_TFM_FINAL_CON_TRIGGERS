@@ -273,8 +273,8 @@ def mostrar_retroalimentacion(datos_bloque):
     win.flip()
     event.waitKeys(keyList=["space", "escape"])
 # Triggers para feedback
-FEEDBACK_CORRECTO_TRIGGER = 3
-FEEDBACK_INCORRECTO_TRIGGER = 4
+CORRECTO_TRIGGER = 3
+INCORRECTO_TRIGGER = 4
 
 def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_triggers=True):
     datos = []
@@ -329,20 +329,20 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
 
         key_pressed = 1 if keys else 0
 
-        # Evaluar la respuesta usando la lista correcta de congruencia
+# Evaluar la respuesta usando la lista correcta de congruencia
         correct, feedback, tipo_asociacion, go_no_go, tecla_registrada, congruente = evaluar_respuesta(
             img, keys, congruencia_por_imagen[nombre_imagen]
         )
-        if enviar_triggers:
-           if correct == 1:
-            dev.activate_line(bitmask=FEEDBACK_CORRECTO_TRIGGER)
-        elif correct == 0:
-            dev.activate_line(bitmask=FEEDBACK_INCORRECTO_TRIGGER)
 
         # Mostrar feedback basado en tipo_asociacion
         feedback_start_time = core.getTime() * 1000 - tarea_start_time
         feedback_stim.text = "Correcto" if feedback == 1 else "Incorrecto"
         feedback_stim.draw()
+        if enviar_triggers:
+            if correct == 1:
+               dev.activate_line(bitmask=CORRECTO_TRIGGER)
+            else:
+               dev.activate_line(bitmask=INCORRECTO_TRIGGER)
         win.flip()
 
         while True:
