@@ -307,12 +307,14 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
 
         reaction_time = round((keys[0][1] * 1000 - tarea_start_time) - imagen_start_time, 3) if keys else "N/A"
         reaction_time_ms = round((keys[0][1] * 1000 - tarea_start_time), 3) if keys else "N/A"
+
         #if enviar_triggers and keys:
         #    dev.activate_line(bitmask=2)  # Trigger para tecla presionada
 
         tiempo_transcurrido = (keys[0][1] * 1000 - tarea_start_time - imagen_start_time) if keys else 1000
         tiempo_restante = max(0, 1000 - tiempo_transcurrido)
-        core.wait(tiempo_restante / 1000.0)  # Convertir a segundos
+        core.wait(tiempo_restante / 1000.0)  # Espera hasta que se cumplan los 1000 ms
+        # ¡AHORA! Aquí es donde realmente desaparece la imagen:
         imagen_end_time = core.getTime() * 1000 - tarea_start_time
 
         key_pressed = 1 if keys else 0
@@ -350,7 +352,6 @@ def ejecutar_bloque(lista_imagenes, congruencia_por_imagen, bloque_num, enviar_t
                       tipo_asociacion, go_no_go, tecla_registrada, congruente, bloque_num, go_tipo_asociacion])
 
     return datos
-
 # Main task execution
 try:
     # Generate congruence list for the entire task
