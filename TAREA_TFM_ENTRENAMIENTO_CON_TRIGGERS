@@ -8,6 +8,7 @@ from psychopy import visual, core, event
 import os
 import pyxid2
 
+#Explicaciones más detalladas en el archivo: TAREA_TFM_ENTRENAMIENTO_SIN_TRIGGERS
 # Directorio donde están los archivos Excel
 ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
 # Obtener lista de archivos Excel en la carpeta
