@@ -9,6 +9,7 @@ import os
 #import pyxid2
 
 # Directorio donde están los archivos Excel
+# Se crearon 5 excels pseudoaleatorizados para la presentación de imagenes que cumplieran con los requisitos: no misma imagen dos veces seguidas, y no mas de 4 estímulos de la misma condición (Go/NoGo) seguidos
 ruta_carpeta_excel = r"C:\Users\navar\Desktop\tarea tfm\EXCELS"
 # Obtener lista de archivos Excel en la carpeta
 archivos_excel = [f for f in os.listdir(ruta_carpeta_excel) if f.endswith('.xlsx')]
@@ -43,6 +44,7 @@ def check_exit():
 
 # Función para guardar datos en un archivo CSV
 def guardar_datos():
+    #modifica según tu carpeta
     carpeta_resultados = r"C:\Users\navar\Desktop\tarea tfm\data"
     if not os.path.exists(carpeta_resultados):
         os.makedirs(carpeta_resultados)
@@ -71,7 +73,7 @@ def guardar_datos():
                                                              "Tecla pulsada", "Milisegundo de respuesta", "Tiempo de respuesta",
                                                              "correct", "Feedback", "Tipo de Asociación", "Go/No-Go", "Tecla Registrada", "Congruente", "Bloque", "GoTipoAsociacon"])
         df_tarea.to_csv(nombre_archivo_tarea, index=False)
-
+#estas imagenes son las instrucciones 
 imagenes_inhibicion = [
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\1.png",
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\INHIBICIÓN COGNITIVA\2.png",
@@ -141,6 +143,7 @@ imagen_stim = visual.ImageStim(win)
 feedback_stim = visual.TextStim(win, text="", color=(-1, -1, -1), height=40)
 
 # Lista de imágenes
+#estas imagenes son los estímulos
 imagenes = [
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\E.jpg",
     r"C:\Users\navar\Desktop\tarea tfm\habitual_inhibition\F.jpg",
